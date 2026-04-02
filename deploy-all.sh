@@ -6,6 +6,7 @@ KASPA_TAG="${KASPA_TAG:-}"
 DOCKER_PLATFORMS="${DOCKER_PLATFORMS:-linux/amd64}"
 BUILDX_BUILDER_NAME="${BUILDX_BUILDER_NAME:-kaspa-amd64}"
 BUILDX_BUILDER_DRIVER="${BUILDX_BUILDER_DRIVER:-docker}"
+KASPA_DEFAULT_RUNTIME_TAG="${KASPA_DEFAULT_RUNTIME_TAG:-v1.1.0}"
 
 require_docker() {
   if docker info >/dev/null 2>&1; then
@@ -78,11 +79,22 @@ build_push() {
   local image="$1"
   local dockerfile="$2"
   local context="$3"
+  shift 3
+  local tag
+  local args=()
+  for tag in "$@"; do
+    args+=(-t "$image:$tag")
+  done
+
+  if [[ ${#args[@]} -eq 0 ]]; then
+    args+=(-t "$image:latest")
+  fi
+
   docker buildx build \
     --builder "$BUILDX_BUILDER_NAME" \
     --platform "$DOCKER_PLATFORMS" \
     --push \
-    -t "$image" \
+    "${args[@]}" \
     -f "$dockerfile" \
     "$context"
 }
@@ -108,37 +120,37 @@ echo "Using Rusty Kaspa tag: ${KASPA_TAG}"
 
 # K-Social frontend (source from synced k repo)
 print_module_header "k-social-web"
-build_push dennitzo/k-social-web:latest "$ROOT_DIR/kaspa-k-social/Dockerfile.web" "$ROOT_DIR/k"
+build_push dennitzo/k-social-web "$ROOT_DIR/kaspa-k-social/Dockerfile.web" "$ROOT_DIR/k" latest
 
 # K-indexer services (used by database + K-Social)
 print_module_header "k-transaction-processor"
-build_push dennitzo/k-transaction-processor:latest "$ROOT_DIR/k-indexer/docker/PROD/Dockerfile.K-transaction-processor" "$ROOT_DIR/k-indexer"
+build_push dennitzo/k-transaction-processor "$ROOT_DIR/k-indexer/docker/PROD/Dockerfile.K-transaction-processor" "$ROOT_DIR/k-indexer" latest
 print_module_header "k-webserver"
-build_push dennitzo/k-webserver:latest "$ROOT_DIR/k-indexer/docker/PROD/Dockerfile.K-webserver" "$ROOT_DIR/k-indexer"
+build_push dennitzo/k-webserver "$ROOT_DIR/k-indexer/docker/PROD/Dockerfile.K-webserver" "$ROOT_DIR/k-indexer" latest
 
 # Kaspa Database app images
 print_module_header "kaspa-database-api"
-build_push dennitzo/kaspa-database-api:latest "$ROOT_DIR/kaspa-database/api/Dockerfile" "$ROOT_DIR/kaspa-database/api"
+build_push dennitzo/kaspa-database-api "$ROOT_DIR/kaspa-database/api/Dockerfile" "$ROOT_DIR/kaspa-database/api" latest
 print_module_header "kaspa-database-ui"
-build_push dennitzo/kaspa-database-ui:latest "$ROOT_DIR/kaspa-database/frontend/Dockerfile" "$ROOT_DIR/kaspa-database/frontend"
+build_push dennitzo/kaspa-database-ui "$ROOT_DIR/kaspa-database/frontend/Dockerfile" "$ROOT_DIR/kaspa-database/frontend" latest
 
 # Explorer + sidecars
 print_module_header "kaspa-explorer-ng"
-build_push dennitzo/kaspa-explorer-ng:latest "$ROOT_DIR/kaspa-explorer-ng/Dockerfile" "$ROOT_DIR/kaspa-explorer-ng"
+build_push dennitzo/kaspa-explorer-ng "$ROOT_DIR/kaspa-explorer-ng/Dockerfile" "$ROOT_DIR/kaspa-explorer-ng" latest
 print_module_header "kaspa-socket-server"
-build_push dennitzo/kaspa-socket-server:latest "$ROOT_DIR/kaspa-socket-server/docker/Dockerfile" "$ROOT_DIR/kaspa-socket-server"
+build_push dennitzo/kaspa-socket-server "$ROOT_DIR/kaspa-socket-server/docker/Dockerfile" "$ROOT_DIR/kaspa-socket-server" latest
 print_module_header "kaspa-rest-server"
-build_push dennitzo/kaspa-rest-server:latest "$ROOT_DIR/kaspa-rest-server/Dockerfile" "$ROOT_DIR/kaspa-rest-server"
+build_push dennitzo/kaspa-rest-server "$ROOT_DIR/kaspa-rest-server/Dockerfile" "$ROOT_DIR/kaspa-rest-server" latest
 
 # Indexers
 print_module_header "simply-kaspa-indexer"
-build_push dennitzo/simply-kaspa-indexer:latest "$ROOT_DIR/simply-kaspa-indexer/docker/Dockerfile" "$ROOT_DIR/simply-kaspa-indexer"
+build_push dennitzo/simply-kaspa-indexer "$ROOT_DIR/simply-kaspa-indexer/docker/Dockerfile" "$ROOT_DIR/simply-kaspa-indexer" latest
 print_module_header "kasia-indexer"
-build_push dennitzo/kasia-indexer:latest "$ROOT_DIR/kasia-indexer/Dockerfile" "$ROOT_DIR/kasia-indexer"
+build_push dennitzo/kasia-indexer "$ROOT_DIR/kasia-indexer/Dockerfile" "$ROOT_DIR/kasia-indexer" latest
 
 # Kasia web (source from synced Kasia repo)
 print_module_header "kasia-web"
-build_push dennitzo/kasia-web:latest "$ROOT_DIR/kaspa-kasia/Dockerfile.web" "$ROOT_DIR/Kasia"
+build_push dennitzo/kasia-web "$ROOT_DIR/kaspa-kasia/Dockerfile.web" "$ROOT_DIR/Kasia" latest
 
 # Rusty Kaspa node + stratum bridge (bridge is built from rusty-kaspa repo)
 if [[ -d "$ROOT_DIR/kaspa-wasm32-sdk" ]]; then
@@ -147,21 +159,22 @@ if [[ -d "$ROOT_DIR/kaspa-wasm32-sdk" ]]; then
 fi
 
 print_module_header "rusty-kaspa"
-build_push "dennitzo/rusty-kaspa:${KASPA_TAG}" "$ROOT_DIR/rusty-kaspa/docker/Dockerfile.kaspad" "$ROOT_DIR/rusty-kaspa"
+build_push "dennitzo/rusty-kaspa" "$ROOT_DIR/rusty-kaspa/docker/Dockerfile.kaspad" "$ROOT_DIR/rusty-kaspa" "$KASPA_TAG" "$KASPA_DEFAULT_RUNTIME_TAG"
 print_module_header "kaspa-stratum-bridge"
 docker buildx build \
   --builder "$BUILDX_BUILDER_NAME" \
   --platform "$DOCKER_PLATFORMS" \
   --no-cache \
   --push \
+  -t "dennitzo/kaspa-stratum-bridge:${KASPA_DEFAULT_RUNTIME_TAG}" \
   -t "dennitzo/kaspa-stratum-bridge:${KASPA_TAG}" \
   -f "$ROOT_DIR/rusty-kaspa/docker/Dockerfile.stratum-bridge" \
   "$ROOT_DIR/rusty-kaspa"
 
 # Node UI/API + stratum dashboard
 print_module_header "kaspa-node-ui"
-build_push dennitzo/kaspa-node-ui:latest "$ROOT_DIR/kaspa-node/frontend/Dockerfile" "$ROOT_DIR/kaspa-node/frontend"
+build_push dennitzo/kaspa-node-ui "$ROOT_DIR/kaspa-node/frontend/Dockerfile" "$ROOT_DIR/kaspa-node/frontend" latest
 print_module_header "kaspa-node-api"
-build_push dennitzo/kaspa-node-api:latest "$ROOT_DIR/kaspa-node/api/Dockerfile" "$ROOT_DIR/kaspa-node/api"
+build_push dennitzo/kaspa-node-api "$ROOT_DIR/kaspa-node/api/Dockerfile" "$ROOT_DIR/kaspa-node/api" latest
 print_module_header "kaspa-stratum-dashboard"
-build_push dennitzo/kaspa-stratum-dashboard:latest "$ROOT_DIR/rusty-kaspa-bridge-dashboard/Dockerfile" "$ROOT_DIR/rusty-kaspa-bridge-dashboard"
+build_push dennitzo/kaspa-stratum-dashboard "$ROOT_DIR/rusty-kaspa-bridge-dashboard/Dockerfile" "$ROOT_DIR/rusty-kaspa-bridge-dashboard" latest
