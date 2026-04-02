@@ -1,0 +1,2 @@
+# kaspa-appstore
+
