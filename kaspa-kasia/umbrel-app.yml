@@ -1,0 +1,25 @@
+manifestVersion: 1
+id: kaspa-kasia
+category: crypto
+name: Kasia
+icon: https://raw.githubusercontent.com/Dennitzo/umbrel-community-app-store/master/kaspa_icon.svg
+version: "0.1.0"
+tagline: Encrypted messaging on Kaspa
+description: >-
+  Kasia is an encrypted messaging client for the Kaspa ecosystem.
+  This Umbrel app serves the Kasia web UI and relies on Kaspa Node plus
+  the shared Kaspa Database stack (including kasia-indexer).
+releaseNotes: ""
+developer: Kaspa Community
+website: https://kasia.fyi
+support: https://github.com/K-Kluster/Kasia
+dependencies:
+  - kaspa-node
+  - kaspa-database
+port: 19118
+gallery: []
+path: ""
+defaultUsername: ""
+defaultPassword: ""
+submitter: Dennitzo
+submission: https://github.com/K-Kluster/Kasia

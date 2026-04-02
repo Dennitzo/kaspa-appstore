@@ -1,0 +1,33 @@
+services:
+  k-webserver:
+    image: dennitzo/k-webserver:latest
+    restart: on-failure
+    stop_grace_period: 1m
+    environment:
+      APP_KASPA_DB_ADDRESS: ${APP_KASPA_DB_ADDRESS:-host.docker.internal}
+      APP_KASPA_DB_PORT: ${APP_KASPA_DB_PORT:-5432}
+    command: >
+      --db-host ${APP_KASPA_DB_ADDRESS:-host.docker.internal}
+      --db-port ${APP_KASPA_DB_PORT:-5432}
+      --db-name ${APP_KASPA_DB_NAME}
+      --db-user ${APP_KASPA_DB_USER}
+      --db-password ${APP_KASPA_DB_PASSWORD}
+      --bind-address 0.0.0.0:${APP_K_SOCIAL_KWEBSERVER_PORT:-3001}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "${APP_K_SOCIAL_KWEBSERVER_PORT:-3001}:${APP_K_SOCIAL_KWEBSERVER_PORT:-3001}"
+
+  web:
+    image: dennitzo/k-social-web:latest
+    restart: on-failure
+    stop_grace_period: 1m
+    depends_on:
+      - k-webserver
+    environment:
+      APP_K_SOCIAL_PORT: 5173
+      APP_K_SOCIAL_KWEBSERVER_API_URI: http://k-webserver:${APP_K_SOCIAL_KWEBSERVER_PORT:-3001}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "5173:5173"

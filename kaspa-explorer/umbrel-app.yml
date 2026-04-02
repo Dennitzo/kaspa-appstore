@@ -1,0 +1,25 @@
+manifestVersion: 1
+id: kaspa-explorer
+category: crypto
+name: Kaspa Explorer
+icon: https://raw.githubusercontent.com/Dennitzo/umbrel-community-app-store/master/kaspa_icon.svg
+version: "2.3.5"
+tagline: Explore the Kaspa blockDAG through a rich REST-powered UI
+description: >-
+  Kaspa Explorer surfaces blocks, transactions, and address history from a
+  local Rusty Kaspad node. It connects through the shared kaspa_db and REST/socket
+  helpers so explorers and future UIs such as the K-webserver stay aligned.
+releaseNotes: "Aligned explorer stack with kaspa-ng sidecars."
+developer: Kaspa Community
+website: https://kaspa.org
+support: https://github.com/kaspanet
+dependencies:
+  - kaspa-node
+  - kaspa-database
+port: 19113
+gallery: []
+path: ""
+defaultUsername: ""
+defaultPassword: ""
+submitter: Dennitzo
+submission: https://github.com/kaspanet

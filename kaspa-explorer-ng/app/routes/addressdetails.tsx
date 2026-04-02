@@ -1,0 +1,429 @@
+import { Accepted, NotAccepted } from "../Accepted";
+import Coinbase from "../Coinbase";
+import IconMessageBox from "../IconMessageBox";
+import KasLink from "../KasLink";
+import PageSelector from "../PageSelector";
+import PageTable from "../PageTable";
+import Spinner from "../Spinner";
+import Tooltip, { TooltipDisplayMode } from "../Tooltip";
+import AccountBalanceWallet from "../assets/account_balance_wallet.svg";
+import ArrowRight from "../assets/arrow-right.svg";
+import Info from "../assets/info.svg";
+import Kaspa from "../assets/kaspa.svg";
+import { MarketDataContext } from "../context/MarketDataProvider";
+import { useAddressBalance } from "../hooks/useAddressBalance";
+import { useAddressNames } from "../hooks/useAddressNames";
+import { useAddressTxCount } from "../hooks/useAddressTxCount";
+import { useAddressUtxos } from "../hooks/useAddressUtxos";
+import { useTransactions } from "../hooks/useTransactions";
+import FooterHelper from "../layout/FooterHelper";
+import { NETWORK_ID } from "../api/config";
+import { isValidKaspaAddressSyntax, normalizeKaspaAddress } from "../utils/kaspa";
+import { savedAddressKeyForNetwork } from "../utils/storage";
+import type { Route } from "./+types/addressdetails";
+import dayjs from "dayjs";
+import localeData from "dayjs/plugin/localeData";
+import localizedFormat from "dayjs/plugin/localizedFormat";
+import relativeTime from "dayjs/plugin/relativeTime";
+import numeral from "numeral";
+import React, { useContext, useEffect, useState } from "react";
+import { NavLink, useLocation } from "react-router";
+
+dayjs().locale("en");
+dayjs.extend(relativeTime);
+dayjs.extend(localeData);
+dayjs.extend(localizedFormat);
+
+export function meta({ params }: Route.LoaderArgs) {
+  return [
+    { title: `Kaspa Address ${params.address} | Kaspa Explorer` },
+    {
+      name: "description",
+      content: "Check Kaspa address details. View transaction history, balance, and associated blocks.",
+    },
+    { name: "keywords", content: "Kaspa address, transactions, wallet balance, blockchain address lookup" },
+  ];
+}
+
+export default function Addressdetails({ params }: Route.ComponentProps) {
+  const rawAddress = params.address || "";
+  const address = normalizeKaspaAddress(rawAddress, NETWORK_ID);
+  const location = useLocation();
+  const { data, isLoading: isLoadingAddressBalance } = useAddressBalance(address);
+  const { data: utxoData, isLoading: isLoadingUtxoData } = useAddressUtxos(address);
+  const { data: txCount, isLoading: isLoadingTxCount } = useAddressTxCount(address);
+  const { data: addressNames } = useAddressNames();
+  const marketData = useContext(MarketDataContext);
+  const [beforeAfter, setBeforeAfter] = useState<number[]>([0, 0]);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [isSavedAddress, setIsSavedAddress] = useState(false);
+  const savedAddressKey = savedAddressKeyForNetwork(NETWORK_ID);
+
+  const [expand, setExpand] = useState<string[]>([]);
+
+  useEffect(() => {
+    setBeforeAfter([0, 0]); // Reset beforeAfter state
+    setCurrentPage(1); // Reset currentPage state
+    if (typeof window !== "undefined") {
+      const saved = window.localStorage.getItem(savedAddressKey);
+      setIsSavedAddress(saved === address);
+    }
+  }, [address, savedAddressKey]);
+
+  const pageSize = 25;
+  const txTotal = txCount?.total ?? 0;
+
+  // fetch transactions with resolve_previous_outpoints set to "light"
+  const { data: txData } = useTransactions(
+    address,
+    pageSize,
+    currentPage === 1 ? 0 : beforeAfter[0],
+    currentPage === 1 ? 0 : beforeAfter[1],
+    "",
+    "light",
+  );
+
+  const pageChange = (page: number) => {
+    // FIRST = 0,
+    // LAST = 3,
+    // PREVIOUS = 2,
+    // NEXT = 1,
+    if (page === 0) {
+      setBeforeAfter([0, 0]);
+      setCurrentPage(1);
+    } else if (page === 1) {
+      setBeforeAfter([txData?.nextBefore ?? 0, 0]);
+      setCurrentPage((currentPage) => currentPage + 1);
+    } else if (page === 2) {
+      setBeforeAfter([0, txData?.nextAfter ?? 0]);
+      setCurrentPage((currentPage) => currentPage - 1);
+    } else if (page === 3) {
+      setBeforeAfter([0, 1]);
+      setCurrentPage(Math.max(1, Math.ceil(txTotal / pageSize)));
+    }
+  };
+
+  const transactions = txData?.transactions || [];
+
+  if (!rawAddress || !isValidKaspaAddressSyntax(rawAddress, NETWORK_ID)) {
+    return (
+      <IconMessageBox
+        icon="error"
+        title="Invalid address"
+        description={`Kaspa address ${rawAddress} doesn't follow the kaspa address schema.`}
+        goBack
+      />
+    );
+  }
+
+  const isTabActive = (tab: string) => {
+    const params = new URLSearchParams(location.search);
+    if (tab === "transactions" && params.get("tab") === null) return true;
+    return params.get("tab") === tab;
+  };
+
+  const txFilter = new URLSearchParams(location.search).get("tx") || "accepted";
+  const filteredTransactions =
+    isTabActive("transactions") && txFilter === "accepted"
+      ? transactions.filter((transaction) => transaction.is_accepted)
+      : transactions;
+
+  const toggleSavedAddress = () => {
+    if (typeof window === "undefined") return;
+    if (isSavedAddress) {
+      window.localStorage.removeItem(savedAddressKey);
+      setIsSavedAddress(false);
+      window.dispatchEvent(new CustomEvent("kaspa:saved-address", { detail: null }));
+    } else {
+      window.localStorage.setItem(savedAddressKey, address);
+      setIsSavedAddress(true);
+      window.dispatchEvent(new CustomEvent("kaspa:saved-address", { detail: address }));
+    }
+  };
+
+  const balance = numeral((data?.balance || 0) / 1_0000_0000).format("0,0.00[000000]");
+  const LoadingSpinner = () => <Spinner className="h-5 w-5" />;
+
+  return (
+    <>
+      <div className="relative flex w-full flex-col rounded-4xl bg-white p-4 text-left text-black sm:p-8">
+        <div className="flex flex-row items-center justify-between text-2xl sm:col-span-2">
+          <div className="flex items-center">
+            <AccountBalanceWallet className="mr-2 h-8 w-8" />
+            <span>Address details</span>
+          </div>
+          <button
+            type="button"
+            onClick={toggleSavedAddress}
+            className="rounded-full border px-4 py-2 text-sm font-medium transition hover:bg-gray-50"
+            style={{ borderColor: "#70C7BA", backgroundColor: "transparent", color: "#70C7BA" }}
+          >
+            {isSavedAddress ? "Delete as my wallet address" : "Save as my wallet address"}
+          </button>
+        </div>
+
+        <span className="mt-4 mb-0">Balance</span>
+
+        {!isLoadingAddressBalance ? (
+          <span className="flex flex-row items-center text-[32px]">
+            {balance.split(".")[0]}.<span className="self-end pb-[0.4rem] text-2xl">{balance.split(".")[1]}</span>
+            <Kaspa className="fill-primary ml-1 h-8 w-8" />
+          </span>
+        ) : (
+          <LoadingSpinner />
+        )}
+        {!isLoadingAddressBalance ? (
+          <span className="ml-1 text-gray-500">
+            {numeral(((data?.balance || 0) / 1_0000_0000) * (marketData?.price || 0)).format("$0,0.00")}
+          </span>
+        ) : (
+          <LoadingSpinner />
+        )}
+        {/*horizontal rule*/}
+        <div className={`my-4 h-[1px] bg-gray-100 sm:col-span-2`} />
+
+        <div className="grid grid-cols-1 gap-x-14 gap-y-2 sm:grid-cols-[auto_1fr]">
+          <FieldName name="Address" infoText="A unique Kaspa address used to send and receive funds." />
+          <FieldValue value={<KasLink linkType="address" copy qr to={address} />} />
+          {addressNames && addressNames[address] && (
+            <>
+              <FieldName name="Address Label" infoText="A label assigned to this address." />
+              <FieldValue
+                value={
+                  <span className="bg-accent-yellow rounded-full px-2 min-h-5 py-0.5 text-center text-nowrap text-alert">
+                    {addressNames[address]}
+                  </span>
+                }
+              />
+            </>
+          )}
+          <FieldName name="Transactions" infoText="Total number of transactions involving this address." />
+          <FieldValue value={!isLoadingTxCount ? numeral(txTotal).format("0,") : <LoadingSpinner />} />
+          <FieldName name="UTXOs" infoText="Unspent, available outputs available at this address." />
+          <FieldValue value={!isLoadingUtxoData ? numeral(utxoData?.length ?? 0).format("0,") : <LoadingSpinner />} />
+        </div>
+      </div>
+
+      <div className="flex w-full flex-col gap-x-18 gap-y-6 rounded-4xl bg-white p-4 text-left text-black sm:p-8">
+        <div className="flex w-full flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex w-auto flex-row items-center justify-around gap-x-1 rounded-full bg-gray-50 p-1 px-1">
+          <NavLink
+            to={`/addresses/${address}?tab=transactions`}
+            preventScrollReset={true}
+            className={() =>
+              `rounded-full px-4 py-1.5 hover:cursor-pointer hover:bg-white ${isTabActive("transactions") ? "bg-white" : ""}`
+            }
+          >
+            Transactions
+          </NavLink>
+          <NavLink
+            to={`/addresses/${address}?tab=utxos`}
+            preventScrollReset={true}
+            className={() =>
+              `rounded-full px-4 py-1.5 hover:cursor-pointer hover:bg-white ${isTabActive("utxos") ? "bg-white" : ""}`
+            }
+          >
+            UTXOs
+          </NavLink>
+          </div>
+          {isTabActive("transactions") && (
+            <div className="flex w-auto flex-row items-center justify-around gap-x-1 rounded-full bg-gray-50 p-1 px-1">
+              <NavLink
+                to={`/addresses/${address}?tab=transactions&tx=all`}
+                preventScrollReset={true}
+                className={() =>
+                  `rounded-full px-4 py-1.5 hover:cursor-pointer hover:bg-white ${txFilter === "all" ? "bg-white" : ""}`
+                }
+              >
+                All
+              </NavLink>
+              <NavLink
+                to={`/addresses/${address}?tab=transactions&tx=accepted`}
+                preventScrollReset={true}
+                className={() =>
+                  `rounded-full px-4 py-1.5 hover:cursor-pointer hover:bg-white ${txFilter === "accepted" ? "bg-white" : ""}`
+                }
+              >
+                Accepted
+              </NavLink>
+            </div>
+          )}
+        </div>
+
+        {isTabActive("transactions") && (
+          <div className="w-full">
+            {filteredTransactions && filteredTransactions.length > 0 ? (
+              <>
+                <PageTable
+                  alignTop
+                  headers={["Timestamp", "ID", "From", "", "To", "Amount", "Status"]}
+                  className="w-full md:text-sm lg:text-base"
+                  additionalClassNames={{
+                    1: "md:w-40 lg:w-50",
+                    2: "md:w-40 lg:w-50",
+                    4: "md:w-40 lg:w-50",
+                    3: "hidden md:table-cell",
+                    5: "text-right",
+                  }}
+                  rows={(filteredTransactions || []).map((transaction) => [
+                    <Tooltip
+                      message={dayjs(transaction.block_time).format("MMM D, YYYY h:mm A")}
+                      display={TooltipDisplayMode.Hover}
+                    >
+                      {dayjs(transaction.block_time).fromNow()}
+                    </Tooltip>,
+                    <KasLink shorten linkType="transaction" link to={transaction.transaction_id} mono />,
+                    (transaction.inputs || []).length > 0 ? (
+                      <ul className="leading-tight">
+                        {(transaction.inputs || [])
+                          .slice(0, expand.indexOf(transaction.transaction_id) === -1 ? 5 : undefined)
+                          .map(
+                            (input) =>
+                              input.previous_outpoint_address && (
+                                <li>
+                                  <KasLink
+                                    link={normalizeKaspaAddress(input.previous_outpoint_address, NETWORK_ID) !== address}
+                                    linkType="address"
+                                    to={normalizeKaspaAddress(input.previous_outpoint_address, NETWORK_ID)}
+                                    shorten
+                                    resolveName
+                                    mono
+                                  />
+                                </li>
+                              ),
+                          )}
+                        {(transaction.inputs || []).length > 5 && expand.indexOf(transaction.transaction_id) === -1 && (
+                          <span
+                            className="text-link cursor-pointer hover:underline"
+                            onClick={() => setExpand((expand) => expand.concat(transaction.transaction_id))}
+                          >
+                            Show more (+{(transaction.inputs || []).length - 5})
+                          </span>
+                        )}
+                      </ul>
+                    ) : (
+                      <Coinbase />
+                    ),
+                    <ArrowRight className="inline h-4 w-4" />,
+                    <ul className="leading-tight">
+                      {(transaction.outputs || []).map((output) => (
+                        <li>
+                          <KasLink
+                            linkType="address"
+                            to={normalizeKaspaAddress(output.script_public_key_address || "", NETWORK_ID)}
+                            link={address !== normalizeKaspaAddress(output.script_public_key_address || "", NETWORK_ID)}
+                            shorten
+                            resolveName
+                            mono
+                          />
+                        </li>
+                      ))}
+                    </ul>,
+                    (() => {
+                      const kasAmount =
+                        ((transaction.inputs || []).reduce(
+                          (acc, input) =>
+                            acc -
+                            (address === normalizeKaspaAddress(input.previous_outpoint_address || "", NETWORK_ID)
+                              ? input.previous_outpoint_amount || 0
+                              : 0),
+                          0,
+                        ) +
+                          (transaction.outputs || []).reduce(
+                            (acc, output) =>
+                              acc +
+                              (address === normalizeKaspaAddress(output.script_public_key_address || "", NETWORK_ID)
+                                ? output.amount
+                                : 0),
+                            0,
+                          )) /
+                        1_0000_0000;
+                      const amountColor = kasAmount >= 0 ? "#70C7BA" : "#C7707D";
+                      const usdAmount = kasAmount * (marketData?.price || 0);
+                      const usdAbsFormatted = numeral(Math.abs(usdAmount)).format("$0,0.00");
+                      const usdFormatted =
+                        usdAmount > 0 ? `+${usdAbsFormatted}` : usdAmount < 0 ? `-${usdAbsFormatted}` : usdAbsFormatted;
+                      return (
+                        <div className="text-right text-nowrap">
+                          <div style={{ color: amountColor }}>
+                            {numeral(kasAmount).format("+0,0.00[000000]")}
+                            <span className="text-nowrap"> KAS</span>
+                          </div>
+                          <div className="text-xs text-gray-500">{usdFormatted}</div>
+                        </div>
+                      );
+                    })(),
+                    <span className="text-sm">{transaction.is_accepted ? <Accepted /> : <NotAccepted />}</span>,
+                  ])}
+                />
+                <div className="ms-auto me-5 flex flex-row justify-center items-center">
+                  {!isLoadingTxCount && (
+                    <PageSelector
+                      currentPage={currentPage}
+                      totalPages={Math.max(1, Math.ceil(txTotal / pageSize))}
+                      onPageChange={pageChange}
+                    />
+                  )}
+                </div>
+              </>
+            ) : (
+              <IconMessageBox
+                icon="data"
+                title="No Transactions"
+                description="This address doesn't have any transactions at the moment."
+              />
+            )}
+          </div>
+        )}
+
+        {isTabActive("utxos") && (
+          <>
+            {(utxoData?.length ?? 0) > 0 ? (
+              <>
+                <PageTable
+                  rows={(utxoData?.slice(0, 50) || []).map((utxo) => [
+                    utxo.utxoEntry.blockDaaScore,
+                    <KasLink linkType="transaction" to={utxo.outpoint.transactionId} link />,
+                    utxo.outpoint.index,
+                    numeral(parseFloat(utxo.utxoEntry.amount) / 1_0000_0000).format("0,0.00[000000]") + " KAS",
+                  ])}
+                  headers={["Block DAA Score", "Transaction ID", "Index", "Amount"]}
+                />
+                {utxoData?.slice(0, 50).length === 50 && (
+                  <div className="me-auto ms-auto">
+                    There are more than 50 UTXOs for this address, which are not displayed.
+                  </div>
+                )}
+              </>
+            ) : (
+              <IconMessageBox
+                icon="data"
+                title="No UTXOs"
+                description="This address doesn't have any UTXOs at the moment."
+              />
+            )}
+          </>
+        )}
+      </div>
+      <FooterHelper icon={AccountBalanceWallet}>
+        <span className="">
+          An address is a unique identifier on the blockchain used to send, receive, and store assets or data. It holds
+          balances and interacts with the network securely.
+        </span>
+      </FooterHelper>
+    </>
+  );
+}
+
+const FieldName = ({ name, infoText }: { name: string; infoText?: string }) => (
+  <div className="flex flex-row items-start fill-gray-500 text-gray-500 sm:col-start-1">
+    <div className="flex flex-row items-center">
+      <Tooltip message={infoText || ""} display={TooltipDisplayMode.Hover} multiLine>
+        <Info className="h-4 w-4" />
+      </Tooltip>
+      <span className="ms-1">{name}</span>
+    </div>
+  </div>
+);
+
+const FieldValue = ({ value }: { value: string | React.ReactNode }) => <span>{value}</span>;

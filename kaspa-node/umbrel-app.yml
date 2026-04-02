@@ -1,0 +1,25 @@
+manifestVersion: 1
+id: kaspa-node
+icon: https://raw.githubusercontent.com/Dennitzo/umbrel-community-app-store/master/kaspa_icon.svg
+category: crypto
+name: Kaspa Node
+version: "v0.3.8"
+tagline: A Rust implementation of a Kaspa full node
+description: |
+  Rusty Kaspad is a Rust implementation of a Kaspa full node. This node software provides essential Kaspa network services including peer-to-peer networking and RPC functionality.
+
+  Kaspa is a proof-of-work cryptocurrency with instant transaction confirmation through blockDAG technology.
+
+  The very heart of Kaspa is the public nodes. Please consider making your node public by forwarding TCP port 16111 on your firewall to your Umbrel node IP address to support the network.
+
+releaseNotes: |
+  Added --utxoindex and app directory arguments. Updated dashboard and embedded DAG visualizer.
+developer: Kaspa Community
+website: https://github.com/kaspanet/rusty-kaspa
+repo: https://github.com/kaspanet/rusty-kaspa
+support: https://github.com/Dennitzo/umbrel-community-app-store
+port: 19112
+path: ""
+gallery: []
+submitter: Dennitzo
+submission: https://github.com/kaspanet

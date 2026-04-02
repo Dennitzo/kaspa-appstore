@@ -1,0 +1,25 @@
+manifestVersion: 1
+id: kaspa-k-social
+category: crypto
+name: K-Social
+icon: https://raw.githubusercontent.com/Dennitzo/umbrel-community-app-store/master/kaspa_icon.svg
+version: "0.1.6"
+tagline: Social hub for Kaspa built on the K web experience
+description: >-
+  K-Social pairs the K web client with the Thesheepcat Kaspa backend services so
+  the community can browse transactions, stats, and chat through the Node.js UI.
+  This app depends on the shared Rusty Kaspad node and Kaspa Database services.
+releaseNotes: ""
+developer: Kaspa Community
+website: https://k-social.network
+support: https://github.com/kaspanet
+dependencies:
+  - kaspa-node
+  - kaspa-database
+port: 5173
+gallery: []
+path: ""
+defaultUsername: ""
+defaultPassword: ""
+submitter: Dennitzo
+submission: https://github.com/kaspanet

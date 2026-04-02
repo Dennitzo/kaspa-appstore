@@ -1,0 +1,46 @@
+services:
+  kaspa_rest_server:
+    image: dennitzo/kaspa-rest-server:latest
+    restart: on-failure
+    stop_grace_period: 1m
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "8091:8000"
+    environment:
+      KASPAD_WRPC_URL: ws://${APP_KASPA_NODE_ADDRESS}:${APP_KASPA_NODE_PORT}
+      KASPAD_WRPC_FALLBACK_URL: resolver
+      SQL_URI: postgresql+asyncpg://${APP_KASPA_DB_USER}:${APP_KASPA_DB_PASSWORD}@${APP_KASPA_DB_ADDRESS}:${APP_KASPA_DB_PORT}/${APP_KASPA_DB_NAME}
+      ADDRESS_RANKINGS: "true"
+      USE_SCRIPT_FOR_ADDRESS: "false"
+
+  simply_kaspa_socket_server:
+    image: dennitzo/kaspa-socket-server:latest
+    restart: on-failure
+    stop_grace_period: 1m
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "8092:8000"
+    environment:
+      KASPAD_HOST_1: ${APP_KASPA_NODE_ADDRESS}:16110
+
+  web:
+    image: dennitzo/kaspa-explorer-ng:latest
+    restart: on-failure
+    stop_grace_period: 1m
+    environment:
+      HOST: 0.0.0.0
+      PORT: 8080
+      VITE_KASPA_API_BASE: http://umbrel.local:8091
+      VITE_KASPA_SOCKET_URL: ws://umbrel.local:8092
+    ports:
+      - "19113:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/ >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    depends_on:
+      - kaspa_rest_server
+      - simply_kaspa_socket_server

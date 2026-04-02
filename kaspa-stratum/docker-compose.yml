@@ -1,0 +1,30 @@
+services:
+  stratum-bridge:
+    image: dennitzo/kaspa-stratum-bridge:v1.1.0-rc.3
+    restart: unless-stopped
+    stop_grace_period: 1m
+    volumes:
+      - ${APP_DATA_DIR}/config.yaml:/app/config.yaml
+      - ${APP_DATA_DIR}/bridge-data:/home/kaspa/.kaspa-stratum-bridge
+    command:
+      - /app/stratum-bridge
+      - --config
+      - /app/config.yaml
+      - --node-mode
+      - external
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "5555:5555"
+      - "2114:2114"
+
+  dashboard:
+    image: dennitzo/kaspa-stratum-dashboard:latest
+    restart: unless-stopped
+    stop_grace_period: 1m
+    depends_on:
+      - stratum-bridge
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "19114:80"

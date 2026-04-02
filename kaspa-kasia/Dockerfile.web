@@ -1,0 +1,77 @@
+FROM node:22-alpine AS builder
+
+WORKDIR /app
+
+RUN apk add --no-cache bash git curl unzip
+
+COPY . ./
+RUN set -eux; \
+  if [ ! -f package.json ] && [ -d .git ]; then git checkout -f HEAD || true; fi; \
+  if [ ! -f package.json ]; then \
+    git clone --depth 1 https://github.com/K-Kluster/Kasia.git /tmp/kasia; \
+    cp -a /tmp/kasia/. /app/; \
+  fi
+
+# Kasia depends on this local vendor package. For web builds we provide the
+# lightweight fallback used in kaspa-ng when submodules are not initialized.
+RUN set -eux; \
+  if [ ! -f vendors/tauri-plugin-biometry/package.json ]; then \
+    mkdir -p vendors/tauri-plugin-biometry; \
+    printf '%s\n' \
+      '{' \
+      '  "name": "@tauri-apps/plugin-biometry",' \
+      '  "version": "0.0.0-fallback",' \
+      '  "type": "module",' \
+      '  "main": "index.js",' \
+      '  "types": "index.d.ts"' \
+      '}' > vendors/tauri-plugin-biometry/package.json; \
+    printf '%s\n' \
+      'export async function checkStatus() { return { isAvailable: false }; }' \
+      'export async function hasData() { return false; }' \
+      'export async function setData() { return; }' \
+      'export async function getData() { return null; }' \
+      > vendors/tauri-plugin-biometry/index.js; \
+    printf '%s\n' \
+      'export declare function checkStatus(): Promise<{ isAvailable: boolean }>; ' \
+      'export declare function hasData(input: { domain: string; name: string }): Promise<boolean>; ' \
+      'export declare function setData(input: { domain: string; name: string; data: string }): Promise<void>; ' \
+      'export declare function getData(input: { domain: string; name: string; reason?: string; cancelTitle?: string }): Promise<{ data: string } | null>; ' \
+      > vendors/tauri-plugin-biometry/index.d.ts; \
+  fi
+
+# Kasia expects local wasm package files in ./wasm.
+RUN set -eux; \
+  if [ ! -f wasm/package.json ]; then \
+    mkdir -p /tmp/kasia-wasm; \
+    curl -fL -o /tmp/kasia-wasm/kaspa-wasm32-sdk.zip https://github.com/IzioDev/rusty-kaspa/releases/download/v1.0.1-beta1/kaspa-wasm32-sdk-v1.0.1-beta1.zip; \
+    unzip -q /tmp/kasia-wasm/kaspa-wasm32-sdk.zip -d /tmp/kasia-wasm/out; \
+    mkdir -p wasm; \
+    cp -a /tmp/kasia-wasm/out/kaspa-wasm32-sdk/web/kaspa/. wasm/; \
+  fi
+
+# Kasia expects local wasm package files in ./cipher-wasm.
+RUN set -eux; \
+  if [ ! -f cipher-wasm/package.json ]; then \
+    apk add --no-cache rust cargo wasm-pack build-base clang lld; \
+    npm run wasm:build; \
+  fi
+
+RUN npm ci
+RUN npm run build:production
+
+FROM nginx:1.27-alpine
+
+COPY --from=builder /app/dist /usr/share/nginx/html
+RUN printf '%s\n' \
+  'server {' \
+  '  listen 80;' \
+  '  server_name _;' \
+  '  root /usr/share/nginx/html;' \
+  '  index index.html;' \
+  '  location / {' \
+  '    try_files $uri $uri/ /index.html;' \
+  '  }' \
+  '}' > /etc/nginx/conf.d/default.conf
+
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]

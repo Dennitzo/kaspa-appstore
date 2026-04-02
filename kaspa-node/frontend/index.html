@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Kaspa Node Dashboard</title>
+    <link rel="icon" type="image/svg+xml" href="kaspa_icon.svg">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="styles.css?v=1.0.2">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        "kaspa-teal": "#14b8a6",
+                        "kaspa-purple": "#c084fc"
+                    }
+                }
+            }
+        };
+    </script>
+</head>
+<body>
+    <div id="appRoot" class="min-h-screen px-4 py-8 sm:px-6 lg:px-12">
+        <main class="mx-auto max-w-6xl space-y-6">
+            <div class="backdrop-panel">
+                <div class="flex flex-col gap-4 lg:flex-row lg:items-center">
+                    <img src="kaspa_icon.svg" alt="Kaspa Node" width="72" height="72" class="rounded-2xl border border-white/10 shadow-2xl" />
+                    <div>
+                        <p class="text-sm uppercase tracking-[0.3em] text-zinc-400">Kaspa Node</p>
+                        <h1 class="text-3xl font-semibold text-white">Rusty Kaspa v<span id="kaspadVersion">—</span></h1>
+                        <p class="mt-2 text-sm text-zinc-400">
+                            Track your Rusty Kaspa instance, confirm sync health, and inspect logs without leaving Umbrel.
+                        </p>
+                        <div class="mt-4 flex flex-wrap items-center gap-3">
+                            <span class="glow-pill" id="statusBadge">Loading status</span>
+                            <div class="flex items-center gap-1 text-sm">
+                                <span class="w-3 h-3 rounded-full bg-teal-400 animate-pulse" id="statusDot"></span>
+                                <span id="statusLabel" class="text-zinc-400">Connecting...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-2">
+                <div class="stat-card">
+                    <p class="stat-label">Node Status</p>
+                    <div class="stat-value flex items-center gap-3">
+                        <span class="w-3 h-3 rounded-full bg-zinc-500 animate-pulse" id="nodeStatusDot"></span>
+                        <span id="dbSizeValue">--</span>
+                    </div>
+                    <p class="stat-sub">Uptime: <span id="uptimeValue">--</span></p>
+                    <p class="stat-sub">Storage: <span id="storageValue">--</span></p>
+                    <p class="stat-sub">Image: <span id="largestTableValue">—</span></p>
+                </div>
+                <div class="stat-card">
+                    <p class="stat-label">Rusty Kaspa commands</p>
+                    <pre class="stat-sub" id="rowSummary">--</pre>
+                </div>
+            </div>
+
+            <div class="grid gap-6 lg:grid-cols-1">
+                <section class="table-card">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-xl font-semibold text-white">Rusty Kaspa Log</h2>
+                    </div>
+                    <p class="mt-2 text-sm text-zinc-400">
+                        A short tail of the kaspad logs to spot sync, peers, and startup events.
+                    </p>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Message</th>
+                                <th>Time</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableStatsBody">
+                            <tr>
+                                <td colspan="2" class="py-6 text-center text-zinc-500">Waiting for data...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </section>
+
+            </div>
+
+            <div class="last-updated">
+                Last updated: <span id="lastUpdated">--</span>
+            </div>
+        </main>
+    </div>
+
+    <script src="dashboard.js?v=1.0.2"></script>
+</body>
+</html>

@@ -1,0 +1,123 @@
+services:
+  kaspa_db:
+    image: postgres:17-alpine
+    restart: on-failure
+    stop_grace_period: 1m
+    shm_size: 4G
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ${APP_DATA_DIR}/data/db:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: ${APP_KASPA_DB_USER}
+      POSTGRES_PASSWORD: ${APP_KASPA_DB_PASSWORD}
+      POSTGRES_DB: ${APP_KASPA_DB_NAME}
+    ports:
+      - "${APP_KASPA_DB_PORT}:${APP_KASPA_DB_PORT}"
+
+  simply_kaspa_indexer:
+    image: dennitzo/simply-kaspa-indexer:latest
+    restart: on-failure
+    stop_grace_period: 1m
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command: >
+      -u
+      -s ws://${APP_KASPA_NODE_ADDRESS}:${APP_KASPA_NODE_PORT:-17110}
+      -d postgresql://${APP_KASPA_DB_USER}:${APP_KASPA_DB_PASSWORD}@${APP_KASPA_DB_ADDRESS}:${APP_KASPA_DB_PORT}/${APP_KASPA_DB_NAME}
+      --prune-db
+      --retention=7d
+      --enable=transactions_inputs_resolve
+    depends_on:
+      - kaspa_db
+
+  k-transaction-processor:
+    image: dennitzo/k-transaction-processor:latest
+    restart: on-failure
+    stop_grace_period: 1m
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command: >
+      --upgrade-db
+      --network ${APP_KASPA_NETWORK}
+      --db-host ${APP_KASPA_DB_ADDRESS}
+      --db-port ${APP_KASPA_DB_PORT}
+      --db-name ${APP_KASPA_DB_NAME}
+      --db-user ${APP_KASPA_DB_USER}
+      --db-password ${APP_KASPA_DB_PASSWORD}
+      --workers 4
+    depends_on:
+      - kaspa_db
+      - simply_kaspa_indexer
+
+  kasia-indexer:
+    image: dennitzo/kasia-indexer:latest
+    restart: on-failure
+    stop_grace_period: 1m
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      KASPA_NODE_WBORSH_URL: ws://${APP_KASPA_NODE_ADDRESS}:${APP_KASPA_NODE_PORT:-17110}
+      RUST_LOG: info
+      KASIA_INDEXER_DB_ROOT: /app/data
+      NETWORK_TYPE: mainnet
+    volumes:
+      - ${APP_DATA_DIR}/data/kasia-indexer:/app/data
+    ports:
+      - "19117:8080"
+
+  indexer-ui-api:
+    image: dennitzo/kaspa-database-api:latest
+    restart: on-failure
+    stop_grace_period: 1m
+    depends_on:
+      - kaspa_db
+    environment:
+      APP_KASPA_DB_ADDRESS: ${APP_KASPA_DB_ADDRESS}
+      APP_KASPA_DB_PORT: ${APP_KASPA_DB_PORT}
+      APP_KASPA_DB_USER: ${APP_KASPA_DB_USER}
+      APP_KASPA_DB_PASSWORD: ${APP_KASPA_DB_PASSWORD}
+      APP_KASPA_DB_NAME: ${APP_KASPA_DB_NAME}
+      APP_COMPOSE_PROJECT: kaspa-database
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+  db_maintenance:
+    image: postgres:17-alpine
+    restart: on-failure
+    stop_grace_period: 1m
+    depends_on:
+      - kaspa_db
+    environment:
+      PGHOST: ${APP_KASPA_DB_ADDRESS}
+      PGPORT: ${APP_KASPA_DB_PORT}
+      PGUSER: ${APP_KASPA_DB_USER}
+      PGPASSWORD: ${APP_KASPA_DB_PASSWORD}
+      PGDATABASE: ${APP_KASPA_DB_NAME}
+    command: >
+      sh -lc '
+        until pg_isready -h "${PGHOST}" -p "${PGPORT}" -U "${PGUSER}"; do
+          sleep 2;
+        done;
+        psql -v ON_ERROR_STOP=1 -c "DROP TABLE IF EXISTS transactions_counts;"
+        psql -v ON_ERROR_STOP=1 -c "DROP TABLE IF EXISTS addresses_transactions_count;"
+        psql -v ON_ERROR_STOP=1 -c "DROP TABLE IF EXISTS scripts_transactions_count;"
+        psql -v ON_ERROR_STOP=1 -c "CREATE TABLE IF NOT EXISTS addresses_transactions_count (address text PRIMARY KEY, count bigint NOT NULL);"
+        psql -v ON_ERROR_STOP=1 -c "CREATE TABLE IF NOT EXISTS scripts_transactions_count (script_public_key bytea PRIMARY KEY, count bigint NOT NULL);"
+        while true; do
+          psql -v ON_ERROR_STOP=1 -c "TRUNCATE addresses_transactions_count; INSERT INTO addresses_transactions_count (address, count) SELECT address, COUNT(*)::bigint FROM addresses_transactions GROUP BY address;"
+          psql -v ON_ERROR_STOP=1 -c "TRUNCATE scripts_transactions_count; INSERT INTO scripts_transactions_count (script_public_key, count) SELECT script_public_key, COUNT(*)::bigint FROM scripts_transactions GROUP BY script_public_key;"
+          sleep 300;
+        done
+      '
+
+  frontend:
+    image: dennitzo/kaspa-database-ui:latest
+    restart: on-failure
+    stop_grace_period: 1m
+    depends_on:
+      - indexer-ui-api
+    ports:
+      - "19111:19111"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>Kaspa Stratum Bridge Dashboard</title>
+  <link rel="icon" type="image/png" href="/favicon.png?v=1">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico?v=1">
+  <link rel="shortcut icon" type="image/png" href="/favicon.png?v=1">
+  <link rel="apple-touch-icon" href="/kaspa_icon.png?v=1">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/site.css">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            "kaspa-teal": "#14b8a6",
+            "kaspa-purple": "#c084fc"
+          }
+        }
+      }
+    };
+  </script>
+</head>
+<body>
+  <div id="appRoot" class="min-h-screen px-4 py-8 sm:px-6 lg:px-12">
+    <main class="mx-auto max-w-6xl space-y-6">
+      <div class="backdrop-panel">
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-center">
+          <img src="/kaspa_icon.svg" alt="Kaspa Stratum Bridge" width="72" height="72" class="rounded-2xl border border-white/10 shadow-2xl" />
+          <div>
+            <p class="text-sm uppercase tracking-[0.3em] text-zinc-400">Kaspa Stratum Bridge</p>
+            <h1 class="text-3xl font-semibold text-white">Real-time mining coordination</h1>
+            <p class="mt-2 text-sm text-zinc-400">
+              Aggregate miner performance, share health, and network stats from your local Kaspa Stratum Bridge deployment.
+            </p>
+            <div class="mt-4 flex flex-wrap items-center gap-3">
+              <span class="glow-pill" id="statusBadge">Loading status</span>
+              <span class="glow-pill" id="kaspadBadge">Kaspad status</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid gap-6 lg:grid-cols-2">
+        <section class="table-card">
+          <div class="flex items-center justify-between">
+            <h2 class="text-xl font-semibold text-white">Kaspa Stratum Bridge</h2>
+            <span class="text-xs uppercase tracking-[0.3em] text-zinc-500">Configuration</span>
+          </div>
+          <p class="mt-2 text-sm text-zinc-400"></p>
+          <div class="mt-4 space-y-2 text-sm text-zinc-300">
+            <div class="flex items-center justify-between">
+              <span class="text-zinc-400">Kaspad address</span>
+              <span id="kaspadAddressValue">--</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-zinc-400">Network</span>
+              <span id="networkValue">--</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-zinc-400">Uptime</span>
+              <span id="uptimeValue">--</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-zinc-400">Image</span>
+              <span id="bridgeVersionValue">--</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="table-card">
+          <div class="flex items-center justify-between">
+            <h2 class="text-xl font-semibold text-white">Stratum Endpoints</h2>
+            <span class="text-xs uppercase tracking-[0.3em] text-zinc-500">Connect miners</span>
+          </div>
+          <p class="mt-2 text-sm text-zinc-400">
+            Replace umbrel.local with the local IP of your Umbrel device if needed.
+          </p>
+          <ul class="endpoint-list" id="stratumEndpoints">
+            <li class="text-zinc-500 text-sm">Waiting for data...</li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div class="stat-card">
+          <p class="stat-label">Total Blocks</p>
+          <p class="stat-value" id="totalBlocksValue">--</p>
+          <p class="stat-sub">Accepted blocks mined through the bridge</p>
+        </div>
+        <div class="stat-card">
+          <p class="stat-label">Active Workers</p>
+          <p class="stat-value" id="activeWorkersValue">--</p>
+          <p class="stat-sub">Current workers reporting hashrate</p>
+        </div>
+        <div class="stat-card">
+          <p class="stat-label">Total Shares</p>
+          <p class="stat-value" id="totalSharesValue">--</p>
+          <p class="stat-sub">Shares submitted by connected workers</p>
+        </div>
+        <div class="stat-card">
+          <p class="stat-label">Network Hashrate</p>
+          <p class="stat-value" id="networkHashrateValue">--</p>
+          <p class="stat-sub">Total mining power on Kaspa</p>
+        </div>
+        <div class="stat-card" id="internalCpuHashrateCard">
+          <p class="stat-label">Internal CPU Hashrate</p>
+          <p class="stat-value" id="internalCpuHashrateValue">--</p>
+          <p class="stat-sub">Bridge internal CPU miner output</p>
+        </div>
+        <div class="stat-card" id="internalCpuBlocksCard">
+          <p class="stat-label">Internal CPU Blocks</p>
+          <p class="stat-value" id="internalCpuBlocksValue">--</p>
+          <p class="stat-sub">Blocks submitted by internal miner</p>
+        </div>
+      </div>
+
+      <section class="table-card">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <h2 class="text-xl font-semibold text-white">Workers</h2>
+            <button id="walletToggle" class="eye-toggle" type="button" aria-pressed="false" aria-label="Hide wallets">
+              <span class="eye-open" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path>
+                  <circle cx="12" cy="12" r="3.5"></circle>
+                </svg>
+              </span>
+              <span class="eye-closed" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M3 5l18 14"></path>
+                  <path d="M2.5 12s3.5-6 9.5-6c2.2 0 4.1.7 5.6 1.7"></path>
+                  <path d="M21.5 12s-3.5 6-9.5 6c-2.2 0-4.1-.7-5.6-1.7"></path>
+                  <circle cx="12" cy="12" r="3.5"></circle>
+                </svg>
+              </span>
+            </button>
+          </div>
+          <span class="text-xs uppercase tracking-[0.3em] text-zinc-500">Live hashrate</span>
+        </div>
+        <p class="mt-2 text-sm text-zinc-400">Active worker stats aggregated by miner.</p>
+        <table>
+          <thead>
+            <tr>
+              <th>Worker</th>
+              <th>Wallet</th>
+              <th>Hashrate</th>
+              <th>Shares</th>
+              <th>Stale</th>
+              <th>Invalid</th>
+              <th>Blocks</th>
+            </tr>
+          </thead>
+          <tbody id="workersTableBody">
+            <tr>
+              <td colspan="7" class="py-6 text-center text-zinc-500">Waiting for data...</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <div class="grid gap-6">
+        <section class="table-card">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <h2 class="text-xl font-semibold text-white">Latest blocks</h2>
+              <button id="blocksWalletToggle" class="eye-toggle" type="button" aria-pressed="false" aria-label="Hide wallets">
+                <span class="eye-open" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path>
+                    <circle cx="12" cy="12" r="3.5"></circle>
+                  </svg>
+                </span>
+                <span class="eye-closed" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M3 5l18 14"></path>
+                    <path d="M2.5 12s3.5-6 9.5-6c2.2 0 4.1.7 5.6 1.7"></path>
+                    <path d="M21.5 12s-3.5 6-9.5 6c-2.2 0-4.1-.7-5.6-1.7"></path>
+                    <circle cx="12" cy="12" r="3.5"></circle>
+                  </svg>
+                </span>
+              </button>
+            </div>
+            <span class="text-xs uppercase tracking-[0.3em] text-zinc-500">Recent shares</span>
+          </div>
+          <p class="mt-2 text-sm text-zinc-400">Most recent accepted blocks reported by miners.</p>
+          <table>
+            <thead>
+              <tr>
+                <th>Worker</th>
+                <th>Wallet</th>
+                <th>Hash</th>
+                <th>Timestamp</th>
+              </tr>
+            </thead>
+            <tbody id="blocksTableBody">
+              <tr>
+                <td colspan="4" class="py-6 text-center text-zinc-500">Waiting for data...</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+      </div>
+
+      <div class="grid gap-6 lg:grid-cols-2">
+        <section class="table-card">
+          <div class="flex items-center justify-between">
+            <h2 class="text-xl font-semibold text-white">Shares by worker</h2>
+            <span class="text-xs uppercase tracking-[0.3em] text-zinc-500">Reported shares</span>
+          </div>
+          <p class="mt-2 text-sm text-zinc-400"></p>
+          <div class="chart-wrap compact">
+            <canvas id="sharesPieChart" width="260" height="260" aria-label="Shares per worker chart"></canvas>
+            <div id="sharesPieTooltip" class="chart-tooltip" aria-hidden="true"></div>
+            <ul id="sharesPieLegend" class="chart-legend">
+              <li class="text-zinc-500 text-sm">Waiting for data...</li>
+            </ul>
+          </div>
+        </section>
+
+        <section class="table-card">
+          <div class="flex items-center justify-between">
+            <h2 class="text-xl font-semibold text-white">Accepted blocks by worker</h2>
+            <span class="text-xs uppercase tracking-[0.3em] text-zinc-500">Reported blocks</span>
+          </div>
+          <p class="mt-2 text-sm text-zinc-400"></p>
+          <div class="chart-wrap compact">
+            <canvas id="blocksPieChart" width="260" height="260" aria-label="Blocks per miner chart"></canvas>
+            <div id="blocksPieTooltip" class="chart-tooltip" aria-hidden="true"></div>
+            <ul id="blocksPieLegend" class="chart-legend">
+              <li class="text-zinc-500 text-sm">Waiting for data...</li>
+            </ul>
+          </div>
+        </section>
+      </div>
+
+      <div class="last-updated">Last updated: <span id="lastUpdated">--</span></div>
+    </main>
+  </div>
+
+  <script src="/static/js/dashboard.js"></script>
+</body>
+</html>

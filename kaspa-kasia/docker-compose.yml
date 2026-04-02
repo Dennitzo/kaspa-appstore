@@ -1,0 +1,12 @@
+services:
+  web:
+    image: dennitzo/kasia-web:latest
+    restart: on-failure
+    stop_grace_period: 1m
+    environment:
+      APP_KASIA_PORT: ${APP_KASIA_PORT:-19118}
+      APP_KASIA_INDEXER_URL: ${APP_KASIA_INDEXER_URL:-http://host.docker.internal:19117}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "${APP_KASIA_PORT:-19118}:80"

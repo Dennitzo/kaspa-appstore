@@ -1,0 +1,22 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+grpcio = "*"
+grpcio-tools = "*"
+fastapi = "*"
+uvicorn = "*"
+gunicorn = "*"
+requests = "*"
+websockets = "*"
+fastapi-utils = "*"
+typing-inspect = "*"
+python-socketio = "*"
+psycopg2 = "*"
+asyncpg = "*"
+cachetools = "*"
+
+[requires]
+python_version = "3.10"
