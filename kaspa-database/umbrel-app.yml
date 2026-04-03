@@ -2,7 +2,7 @@ manifestVersion: 1
 id: kaspa-database
 category: crypto
 name: Kaspa Database
-version: "0.4.8"
+version: "0.4.9"
 tagline: Shared database and indexing for Kaspa UIs
 description: >-
   Provides the shared PostgreSQL database, simply-kaspa-indexer, and transaction

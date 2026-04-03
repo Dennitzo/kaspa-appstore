@@ -21,6 +21,7 @@ LOG_SERVICES = {
     "kaspa_db": "postgres:17-alpine",
     "simply_kaspa_indexer": "dennitzo/simply-kaspa-indexer",
     "k-transaction-processor": "thesheepcat/k-transaction-processor",
+    "kasia-indexer": "dennitzo/kasia-indexer",
 }
 
 TABLE_STATS_SQL = """

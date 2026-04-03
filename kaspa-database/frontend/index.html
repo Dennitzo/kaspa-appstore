@@ -9,7 +9,7 @@
     <title>Kaspa Database Dashboard</title>
     <link rel="icon" type="image/svg+xml" href="kaspa_icon.svg">
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="styles.css?v=0.3.18">
+    <link rel="stylesheet" href="styles.css?v=0.3.19">
     <script>
         tailwind.config = {
             theme: {
@@ -64,8 +64,8 @@
                 </div>
             </div>
 
-            <div class="grid gap-6 lg:grid-cols-2">
-                <section class="table-card">
+            <div class="grid gap-6 lg:grid-cols-2 items-stretch">
+                <section class="table-card h-full">
                     <div class="flex items-center justify-between">
                         <h2 class="text-xl font-semibold text-white">Top Tables</h2>
                         <span class="text-xs uppercase tracking-[0.3em] text-zinc-500">Approximate rows</span>
@@ -90,10 +90,10 @@
                     </table>
                 </section>
 
-                <section class="stat-card space-y-4">
+                <section class="stat-card space-y-4 h-full">
                     <h2 class="text-xl font-semibold text-white">Database Stack</h2>
                     <p class="text-sm text-zinc-400">
-                        Every image below collaborates to keep the Kaspa ecosystem searchable: the database, the indexer that consumes block data, and the processor that keeps everything fresh.
+                        Every image below collaborates to keep the Kaspa ecosystem searchable: the database, indexers that consume block data, and processors that keep everything fresh.
                     </p>
                     <ul class="stack-list">
                         <li>
@@ -137,6 +137,20 @@
                                 <p class="text-xs text-zinc-500">Post-processing & cleanup</p>
                             </div>
                             <span class="stack-badge">Processor</span>
+                        </li>
+                        <li>
+                            <div>
+                                <button
+                                    class="stack-link text-sm font-semibold text-white"
+                                    type="button"
+                                    data-log-service="kasia-indexer"
+                                    data-log-label="dennitzo/kasia-indexer"
+                                >
+                                    dennitzo/kasia-indexer
+                                </button>
+                                <p class="text-xs text-zinc-500">Indexes Kasia message metadata</p>
+                            </div>
+                            <span class="stack-badge">Indexer</span>
                         </li>
                     </ul>
                 </section>
