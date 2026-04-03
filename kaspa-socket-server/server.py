@@ -18,7 +18,8 @@ sio = socketio.AsyncServer(async_mode="asgi", cors_allowed_origins="*")
 app = FastAPI(
     title="Kaspa REST-API server",
     description="This server is to communicate with kaspa network via REST-API",
-    version=os.getenv("VERSION", "tbd"),
+    # FastAPI requires a non-empty version string for OpenAPI.
+    version=(os.getenv("VERSION") or "0.0.0"),
     contact={
         "name": "lAmeR1"
     },
