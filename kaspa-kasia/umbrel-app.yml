@@ -2,7 +2,7 @@ manifestVersion: 1
 id: kaspa-kasia
 category: crypto
 name: Kasia
-icon: https://raw.githubusercontent.com/Dennitzo/umbrel-community-app-store/master/kaspa_icon.svg
+icon: https://raw.githubusercontent.com/Dennitzo/kaspa-appstore/main/kaspa_icon.svg
 version: "0.1.0"
 tagline: Encrypted messaging on Kaspa
 description: >-

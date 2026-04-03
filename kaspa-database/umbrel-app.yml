@@ -7,7 +7,7 @@ tagline: Shared database and indexing for Kaspa UIs
 description: >-
   Provides the shared PostgreSQL database, simply-kaspa-indexer, and transaction
   processor that Kaspa Explorer and companion UIs rely on.
-icon: https://raw.githubusercontent.com/Dennitzo/umbrel-community-app-store/master/kaspa_icon.svg
+icon: https://raw.githubusercontent.com/Dennitzo/kaspa-appstore/main/kaspa_icon.svg
 releaseNotes: ""
 developer: Kaspa Community
 website: https://kaspa.org

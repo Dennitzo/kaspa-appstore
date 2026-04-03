@@ -1,6 +1,6 @@
 manifestVersion: 1
 id: kaspa-node
-icon: https://raw.githubusercontent.com/Dennitzo/umbrel-community-app-store/master/kaspa_icon.svg
+icon: https://raw.githubusercontent.com/Dennitzo/kaspa-appstore/main/kaspa_icon.svg
 category: crypto
 name: Kaspa Node
 version: "v0.3.8"

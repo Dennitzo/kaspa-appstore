@@ -2,7 +2,7 @@ manifestVersion: 1
 id: kaspa-k-social
 category: crypto
 name: K-Social
-icon: https://raw.githubusercontent.com/Dennitzo/umbrel-community-app-store/master/kaspa_icon.svg
+icon: https://raw.githubusercontent.com/Dennitzo/kaspa-appstore/main/kaspa_icon.svg
 version: "0.1.6"
 tagline: Social hub for Kaspa built on the K web experience
 description: >-

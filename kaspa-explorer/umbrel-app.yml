@@ -2,7 +2,7 @@ manifestVersion: 1
 id: kaspa-explorer
 category: crypto
 name: Kaspa Explorer
-icon: https://raw.githubusercontent.com/Dennitzo/umbrel-community-app-store/master/kaspa_icon.svg
+icon: https://raw.githubusercontent.com/Dennitzo/kaspa-appstore/main/kaspa_icon.svg
 version: "2.3.5"
 tagline: Explore the Kaspa blockDAG through a rich REST-powered UI
 description: >-
