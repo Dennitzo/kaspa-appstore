@@ -5,19 +5,13 @@ const DEFAULT_HEADERS = {
   "Cache-Control": "no-cache",
 };
 
-const MAINNET_MARKET_API_BASE = "https://api.kaspa.org";
-
 type MarketDataOptions = {
-  // In testnet mode we intentionally display the mainnet market feed.
   preferMainnetSource?: boolean;
 };
 
-export async function getMarketData(options?: MarketDataOptions) {
+export async function getMarketData(_options?: MarketDataOptions) {
   const currentBase = getApiBase();
-  const orderedBases = options?.preferMainnetSource
-    ? [MAINNET_MARKET_API_BASE, currentBase]
-    : [currentBase, MAINNET_MARKET_API_BASE];
-  const bases = [...new Set(orderedBases)];
+  const bases = [currentBase];
 
   let lastStatus: number | null = null;
   for (const base of bases) {

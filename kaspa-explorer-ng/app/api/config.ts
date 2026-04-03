@@ -6,7 +6,7 @@ type ExplorerRuntimeConfig = {
   apiSource?: ExplorerApiSource;
 };
 
-type ExplorerApiSource = "official" | "self-hosted" | "custom";
+type ExplorerApiSource = "self-hosted" | "custom";
 
 const readQueryConfig = (): ExplorerRuntimeConfig => {
   if (typeof window === "undefined") return {};
@@ -25,11 +25,31 @@ const readQueryConfig = (): ExplorerRuntimeConfig => {
 
 const QUERY_CONFIG = readQueryConfig();
 
+type ExplorerEnvConfig = {
+  VITE_KASPA_API_BASE?: string;
+  VITE_KASPA_SOCKET_URL?: string;
+  VITE_KASPA_SOCKET_PATH?: string;
+  VITE_KASPA_NETWORK_ID?: string;
+};
+
+const readEnvConfig = (): ExplorerRuntimeConfig => {
+  const env = (import.meta as { env?: ExplorerEnvConfig }).env ?? {};
+  const config: ExplorerRuntimeConfig = {};
+  if (env.VITE_KASPA_API_BASE) config.apiBase = env.VITE_KASPA_API_BASE;
+  if (env.VITE_KASPA_SOCKET_URL) config.socketUrl = env.VITE_KASPA_SOCKET_URL;
+  if (env.VITE_KASPA_SOCKET_PATH) config.socketPath = env.VITE_KASPA_SOCKET_PATH;
+  if (env.VITE_KASPA_NETWORK_ID) config.networkId = env.VITE_KASPA_NETWORK_ID;
+  return config;
+};
+
+const ENV_CONFIG = readEnvConfig();
+
 const readRuntimeConfig = (): ExplorerRuntimeConfig => {
   const runtime =
     (globalThis as { __KASPA_EXPLORER_CONFIG__?: ExplorerRuntimeConfig })
       .__KASPA_EXPLORER_CONFIG__ ?? {};
   return {
+    ...ENV_CONFIG,
     ...QUERY_CONFIG,
     ...runtime,
   };
@@ -43,8 +63,11 @@ const normalizeSocketUrl = (value: string) => {
   return normalized;
 };
 
-export const getApiBase = () => normalizeBase(readRuntimeConfig().apiBase ?? "https://api.kaspa.org");
-export const getSocketUrl = () => normalizeSocketUrl(readRuntimeConfig().socketUrl ?? "https://api.kaspa.org");
+const DEFAULT_API_BASE = "http://umbrel.local:8091";
+const DEFAULT_SOCKET_URL = "http://umbrel.local:8092";
+
+export const getApiBase = () => normalizeBase(readRuntimeConfig().apiBase ?? DEFAULT_API_BASE);
+export const getSocketUrl = () => normalizeSocketUrl(readRuntimeConfig().socketUrl ?? DEFAULT_SOCKET_URL);
 export const getSocketPath = () => readRuntimeConfig().socketPath ?? "/ws/socket.io";
 export const getNetworkId = () => readRuntimeConfig().networkId ?? "mainnet";
 export const getApiSource = (): ExplorerApiSource => {
@@ -62,13 +85,12 @@ export const getApiSource = (): ExplorerApiSource => {
     // Fall through to default.
   }
 
-  return apiBase === "https://api.kaspa.org" ? "official" : "custom";
+  return apiBase === DEFAULT_API_BASE ? "self-hosted" : "custom";
 };
 
 export const getApiSourceLabel = () => {
   const source = getApiSource();
   if (source === "self-hosted") return "Self-hosted";
-  if (source === "official") return "Public";
   return "Custom";
 };
 
