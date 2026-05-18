@@ -19,6 +19,7 @@ support: https://github.com/Dennitzo/umbrel-community-app-store
 submitter: Dennitzo
 submission: https://github.com/kaspanet
 dependencies:
+  - kaspa-node
   - rusty-kaspad
 
 port: 19114
