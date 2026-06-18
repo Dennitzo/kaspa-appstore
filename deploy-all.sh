@@ -6,7 +6,6 @@ KASPA_TAG="${KASPA_TAG:-}"
 DOCKER_PLATFORMS="${DOCKER_PLATFORMS:-linux/amd64}"
 BUILDX_BUILDER_NAME="${BUILDX_BUILDER_NAME:-kaspa-amd64}"
 BUILDX_BUILDER_DRIVER="${BUILDX_BUILDER_DRIVER:-docker}"
-KASPA_DEFAULT_RUNTIME_TAG="${KASPA_DEFAULT_RUNTIME_TAG:-v1.1.0}"
 
 require_docker() {
   if docker info >/dev/null 2>&1; then
@@ -166,14 +165,13 @@ if [[ -d "$ROOT_DIR/kaspa-wasm32-sdk" ]]; then
 fi
 
 print_module_header "rusty-kaspa"
-build_push "dennitzo/rusty-kaspa" "$ROOT_DIR/rusty-kaspa/docker/Dockerfile.kaspad" "$ROOT_DIR/rusty-kaspa" "$KASPA_TAG" "$KASPA_DEFAULT_RUNTIME_TAG"
+build_push "dennitzo/rusty-kaspa" "$ROOT_DIR/rusty-kaspa/docker/Dockerfile.kaspad" "$ROOT_DIR/rusty-kaspa" "$KASPA_TAG"
 print_module_header "kaspa-stratum-bridge"
 docker buildx build \
   --builder "$BUILDX_BUILDER_NAME" \
   --platform "$DOCKER_PLATFORMS" \
   --no-cache \
   --push \
-  -t "dennitzo/kaspa-stratum-bridge:${KASPA_DEFAULT_RUNTIME_TAG}" \
   -t "dennitzo/kaspa-stratum-bridge:${KASPA_TAG}" \
   -f "$ROOT_DIR/rusty-kaspa/docker/Dockerfile.stratum-bridge" \
   "$ROOT_DIR/rusty-kaspa"
