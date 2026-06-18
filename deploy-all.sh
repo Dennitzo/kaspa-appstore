@@ -66,13 +66,20 @@ resolve_kaspa_tag() {
   fi
 
   local cargo_version
-  cargo_version="$(awk -F'"' '/^version = "/ {print $2; exit}' "$ROOT_DIR/rusty-kaspa/Cargo.toml" 2>/dev/null || true)"
+  cargo_version="$(awk -F'"' '
+    /^\[workspace\.package\]/ { in_workspace_package = 1; next }
+    /^\[/ { in_workspace_package = 0 }
+    in_workspace_package && /^version = "/ { print $2; exit }
+  ' "$ROOT_DIR/rusty-kaspa/Cargo.toml" 2>/dev/null || true)"
+  if [[ -z "$cargo_version" ]]; then
+    cargo_version="$(awk -F'"' '/^version = "/ {print $2; exit}' "$ROOT_DIR/rusty-kaspa/Cargo.toml" 2>/dev/null || true)"
+  fi
   if [[ -n "$cargo_version" ]]; then
     KASPA_TAG="v${cargo_version}"
     return 0
   fi
 
-  KASPA_TAG="v2.0.1"
+  KASPA_TAG="latest"
 }
 
 build_push() {
