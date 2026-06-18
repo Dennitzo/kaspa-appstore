@@ -72,7 +72,7 @@ resolve_kaspa_tag() {
     return 0
   fi
 
-  KASPA_TAG="v1.1.0"
+  KASPA_TAG="v2.0.1"
 }
 
 build_push() {
