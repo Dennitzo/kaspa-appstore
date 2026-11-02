@@ -1,0 +1,43 @@
+# Betriebssystem
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# Node
+node_modules/
+
+# Lokale App-Daten (Node- und Stratum-Datenverzeichnisse)
+data/
+
+# Rust-Build-Artefakte
+target/
+
+# Externes geklontes Repo (wird von sync-external-repos.sh verwaltet)
+rusty-kaspa/
+
+# Logs
+*.log
+logs/
+
+# IDE
+.idea/
+.vscode/
+
+# Lokale Konfiguration
+.env
+.env.*
+
+# Docker-Login (enthält Zugangsdaten, nicht versionieren)
+scripts/docker-login.ps1
+scripts/docker-login.sh

@@ -60,3 +60,23 @@
 2026-11-02 17:56:46.158+00:00 [WARN]  kaspa_stratum_bridge::kaspaapi: failed to get network hashrate from kaspa, prom stats will be out of date: difficulty error: window data has only 0 entries -- this usually happens when the node has just began syncing
 2026-11-02 17:56:46.316+00:00 [WARN]  kaspa_stratum_bridge::kaspaapi: Kaspa is not synced, waiting for sync before starting bridge
 2026-11-02 17:56:56.320+00:00 [WARN]  kaspa_stratum_bridge::kaspaapi: Kaspa is not synced, waiting for sync before starting bridge
+2026-11-02 17:57:06.324+00:00 [WARN]  kaspa_stratum_bridge::kaspaapi: Kaspa is not synced, waiting for sync before starting bridge
+2026-11-02 17:57:16.155+00:00 [WARN]  kaspa_stratum_bridge::kaspaapi: failed to get network hashrate from kaspa, prom stats will be out of date: difficulty error: window data has only 0 entries -- this usually happens when the node has just began syncing
+2026-11-02 17:57:16.326+00:00 [WARN]  kaspa_stratum_bridge::kaspaapi: Kaspa is not synced, waiting for sync before starting bridge
+2026-11-02 17:57:26.329+00:00 [WARN]  kaspa_stratum_bridge::kaspaapi: Kaspa is not synced, waiting for sync before starting bridge
+2026-11-02 17:57:36.334+00:00 [WARN]  kaspa_stratum_bridge::kaspaapi: Kaspa is not synced, waiting for sync before starting bridge
+2026-11-02 17:57:46.153+00:00 [WARN]  kaspa_stratum_bridge::kaspaapi: failed to get network hashrate from kaspa, prom stats will be out of date: difficulty error: window data has only 0 entries -- this usually happens when the node has just began syncing
+2026-11-02 17:57:46.336+00:00 [WARN]  kaspa_stratum_bridge::kaspaapi: Kaspa is not synced, waiting for sync before starting bridge
+2026-11-02 17:57:56.340+00:00 [WARN]  kaspa_stratum_bridge::kaspaapi: Kaspa is not synced, waiting for sync before starting bridge
+2026-11-02 17:58:06.344+00:00 [WARN]  kaspa_stratum_bridge::kaspaapi: Kaspa is not synced, waiting for sync before starting bridge
+2026-11-02 17:58:16.151+00:00 [WARN]  kaspa_stratum_bridge::kaspaapi: failed to get network hashrate from kaspa, prom stats will be out of date: difficulty error: window data has only 0 entries -- this usually happens when the node has just began syncing
+2026-11-02 17:58:16.346+00:00 [WARN]  kaspa_stratum_bridge::kaspaapi: Kaspa is not synced, waiting for sync before starting bridge
+2026-11-02 17:58:26.350+00:00 [WARN]  kaspa_stratum_bridge::kaspaapi: Kaspa is not synced, waiting for sync before starting bridge
+2026-11-02 17:58:36.354+00:00 [WARN]  kaspa_stratum_bridge::kaspaapi: Kaspa is not synced, waiting for sync before starting bridge
+2026-11-02 17:58:46.149+00:00 [WARN]  kaspa_stratum_bridge::kaspaapi: failed to get network hashrate from kaspa, prom stats will be out of date: difficulty error: window data has only 0 entries -- this usually happens when the node has just began syncing
+2026-11-02 17:58:46.356+00:00 [WARN]  kaspa_stratum_bridge::kaspaapi: Kaspa is not synced, waiting for sync before starting bridge
+2026-11-02 17:58:56.360+00:00 [WARN]  kaspa_stratum_bridge::kaspaapi: Kaspa is not synced, waiting for sync before starting bridge
+2026-11-02 17:59:06.364+00:00 [WARN]  kaspa_stratum_bridge::kaspaapi: Kaspa is not synced, waiting for sync before starting bridge
+2026-11-02 17:59:16.148+00:00 [WARN]  kaspa_stratum_bridge::kaspaapi: failed to get network hashrate from kaspa, prom stats will be out of date: difficulty error: window data has only 0 entries -- this usually happens when the node has just began syncing
+2026-11-02 17:59:16.366+00:00 [WARN]  kaspa_stratum_bridge::kaspaapi: Kaspa is not synced, waiting for sync before starting bridge
+2026-11-02 17:59:26.370+00:00 [WARN]  kaspa_stratum_bridge::kaspaapi: Kaspa is not synced, waiting for sync before starting bridge
