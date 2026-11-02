@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
+# Baut und pusht ausschliesslich die Images fuer:
+#   - Kaspa Node (rusty-kaspa Node + kaspa-node UI/API)
+#   - Kaspa Stratum Bridge (stratum-bridge + stratum-dashboard)
+# Die Anmeldung wird einmalig via scripts/docker-login.ps1 bzw. docker-login.sh
+# hinterlegt; deploy-all.sh pusht standardmaessig (PUSH_IMAGES=1).
+# Mit PUSH_IMAGES=0 werden die Images nur lokal gebaut (kein Push).
 set -euo pipefail
 
 ROOT_DIR="${ROOT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}"
@@ -30,7 +36,8 @@ require_buildx() {
 
 ensure_buildx_builder() {
   if [[ "$BUILDX_BUILDER_DRIVER" == "docker" ]]; then
-    BUILDX_BUILDER_NAME="default"
+    # Use the active docker context as the buildx builder name.
+    BUILDX_BUILDER_NAME="$(docker context show)"
     docker buildx use "$BUILDX_BUILDER_NAME" >/dev/null 2>&1 || true
     docker buildx inspect "$BUILDX_BUILDER_NAME" >/dev/null
     return 0
@@ -96,10 +103,14 @@ build_push() {
     args+=(-t "$image:latest")
   fi
 
+  local push_args=()
+  if [[ "$PUSH_IMAGES" == "1" ]]; then
+    push_args+=(--push)
+  fi
   docker buildx build \
     --builder "$BUILDX_BUILDER_NAME" \
     --platform "$DOCKER_PLATFORMS" \
-    --push \
+    "${push_args[@]}" \
     "${args[@]}" \
     -f "$dockerfile" \
     "$context"
@@ -117,66 +128,54 @@ require_docker
 require_buildx
 ensure_buildx_builder
 cleanup_legacy_builder
-docker login
 
-# Keep all external source repos updated (git pull --ff-only / clone).
+# Docker-Registrierungs-Anmeldung:
+#   1) Nicht-interaktiv, wenn KASPA_DOCKER_USER + KASPA_DOCKER_TOKEN gesetzt sind.
+#   2) Interaktiv an einem echten Terminal.
+#   3) Sonst die via scripts/docker-login.ps1 hinterlegte Anmeldung verwenden.
+DOCKER_REGISTRY="${DOCKER_REGISTRY:-docker.io}"
+
+# Push standardmaessig aktiv (Anmeldung wird via scripts/docker-login.ps1 hinterlegt).
+# Mit PUSH_IMAGES=0 werden die Images nur lokal gebaut.
+PUSH_IMAGES="${PUSH_IMAGES:-1}"
+
+if [[ -n "${KASPA_DOCKER_USER:-}" && -n "${KASPA_DOCKER_TOKEN:-}" ]]; then
+  printf '%s' "$KASPA_DOCKER_TOKEN" | docker login --username "$KASPA_DOCKER_USER" --password-stdin "$DOCKER_REGISTRY"
+elif [[ -t 0 ]]; then
+  docker login
+else
+  echo "Kein Terminal fuer docker login; nutze die via scripts/docker-login.ps1 hinterlegte Anmeldung." >&2
+fi
+
+if [[ "$PUSH_IMAGES" != "1" ]]; then
+  echo "Hinweis: PUSH_IMAGES != 1 -> nur lokaler Build, kein Push." >&2
+fi
+
+# Keep rusty-kaspa up to date (git pull --ff-only / clone).
 KASPA_EXTERNAL_SYNC_STRICT=1 KASPA_EXTERNAL_SYNC_RETRIES=4 bash "$ROOT_DIR/scripts/sync-external-repos.sh" "$ROOT_DIR"
 resolve_kaspa_tag
 echo "Using Rusty Kaspa tag: ${KASPA_TAG}"
 
-# K-Social frontend (source from synced k repo)
-print_module_header "k-social-web"
-build_push dennitzo/k-social-web "$ROOT_DIR/kaspa-k-social/Dockerfile.web" "$ROOT_DIR/k" latest
-
-# K-indexer services (used by database + K-Social)
-print_module_header "k-transaction-processor"
-build_push dennitzo/k-transaction-processor "$ROOT_DIR/k-indexer/docker/PROD/Dockerfile.K-transaction-processor" "$ROOT_DIR/k-indexer" latest
-print_module_header "k-webserver"
-build_push dennitzo/k-webserver "$ROOT_DIR/k-indexer/docker/PROD/Dockerfile.K-webserver" "$ROOT_DIR/k-indexer" latest
-
-# Kaspa Database app images
-print_module_header "kaspa-database-api"
-build_push dennitzo/kaspa-database-api "$ROOT_DIR/kaspa-database/api/Dockerfile" "$ROOT_DIR/kaspa-database/api" latest
-print_module_header "kaspa-database-ui"
-build_push dennitzo/kaspa-database-ui "$ROOT_DIR/kaspa-database/frontend/Dockerfile" "$ROOT_DIR/kaspa-database/frontend" latest
-
-# Explorer + sidecars
-print_module_header "kaspa-explorer-ng"
-build_push dennitzo/kaspa-explorer-ng "$ROOT_DIR/kaspa-explorer-ng/Dockerfile" "$ROOT_DIR/kaspa-explorer-ng" latest
-print_module_header "kaspa-socket-server"
-build_push dennitzo/kaspa-socket-server "$ROOT_DIR/kaspa-socket-server/docker/Dockerfile" "$ROOT_DIR/kaspa-socket-server" latest
-print_module_header "kaspa-rest-server"
-build_push dennitzo/kaspa-rest-server "$ROOT_DIR/kaspa-rest-server/Dockerfile" "$ROOT_DIR/kaspa-rest-server" latest
-
-# Indexers
-print_module_header "simply-kaspa-indexer"
-build_push dennitzo/simply-kaspa-indexer "$ROOT_DIR/simply-kaspa-indexer/docker/Dockerfile" "$ROOT_DIR/simply-kaspa-indexer" latest
-print_module_header "kasia-indexer"
-build_push dennitzo/kasia-indexer "$ROOT_DIR/kasia-indexer/Dockerfile" "$ROOT_DIR/kasia-indexer" latest
-
-# Kasia web (source from synced Kasia repo)
-print_module_header "kasia-web"
-build_push dennitzo/kasia-web "$ROOT_DIR/kaspa-kasia/Dockerfile.web" "$ROOT_DIR/Kasia" latest
-
-# Rusty Kaspa node + stratum bridge (bridge is built from rusty-kaspa repo)
-if [[ -d "$ROOT_DIR/kaspa-wasm32-sdk" ]]; then
-  rm -rf "$ROOT_DIR/rusty-kaspa/kaspa-wasm32-sdk"
-  cp -a "$ROOT_DIR/kaspa-wasm32-sdk" "$ROOT_DIR/rusty-kaspa/kaspa-wasm32-sdk"
-fi
-
+# Rusty Kaspa Node
 print_module_header "rusty-kaspa"
 build_push "dennitzo/rusty-kaspa" "$ROOT_DIR/rusty-kaspa/docker/Dockerfile.kaspad" "$ROOT_DIR/rusty-kaspa" "$KASPA_TAG"
+
+# Kaspa Stratum Bridge (source from rusty-kaspa repo)
 print_module_header "kaspa-stratum-bridge"
+push_args=()
+if [[ "$PUSH_IMAGES" == "1" ]]; then
+  push_args+=(--push)
+fi
 docker buildx build \
   --builder "$BUILDX_BUILDER_NAME" \
   --platform "$DOCKER_PLATFORMS" \
   --no-cache \
-  --push \
+  "${push_args[@]}" \
   -t "dennitzo/kaspa-stratum-bridge:${KASPA_TAG}" \
   -f "$ROOT_DIR/rusty-kaspa/docker/Dockerfile.stratum-bridge" \
   "$ROOT_DIR/rusty-kaspa"
 
-# Node UI/API + stratum dashboard
+# Node UI/API + Stratum Dashboard
 print_module_header "kaspa-node-ui"
 build_push dennitzo/kaspa-node-ui "$ROOT_DIR/kaspa-node/frontend/Dockerfile" "$ROOT_DIR/kaspa-node/frontend" latest
 print_module_header "kaspa-node-api"

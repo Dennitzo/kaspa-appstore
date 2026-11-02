@@ -25,7 +25,7 @@ services:
       - "host.docker.internal:host-gateway"
 
   kaspad:
-    image: dennitzo/rusty-kaspa:v2.0.1
+    image: dennitzo/rusty-kaspa:v2.1.0
     restart: on-failure
     stop_grace_period: 1m
     user: "0:0"

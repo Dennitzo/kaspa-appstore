@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
+# Haelt ausschliesslich das externe rusty-kaspa Repo aktuell (git pull / clone).
+# Alle anderen Komponenten (Node-UI/API, Stratum-Dashboard) liegen direkt im Store.
 set -Eeuo pipefail
 
 ROOT_DIR="${1:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 RETRIES="${KASPA_EXTERNAL_SYNC_RETRIES:-4}"
 BACKOFF_BASE_SECS="${KASPA_EXTERNAL_SYNC_BACKOFF_SECS:-2}"
 STRICT="${KASPA_EXTERNAL_SYNC_STRICT:-1}"
-LOCAL_ONLY_REPOS="${KASPA_EXTERNAL_LOCAL_ONLY_REPOS:-kaspa-explorer-ng,kaspa-socket-server,kaspa-rest-server}"
 
 is_truthy() {
   local value="${1:-}"
@@ -13,16 +14,6 @@ is_truthy() {
     1|true|yes|on) return 0 ;;
     *) return 1 ;;
   esac
-}
-
-is_local_only_repo() {
-  local dir="$1"
-  local entry
-  IFS=',' read -r -a entries <<<"$LOCAL_ONLY_REPOS"
-  for entry in "${entries[@]}"; do
-    [[ "$entry" == "$dir" ]] && return 0
-  done
-  return 1
 }
 
 remove_target_dir() {
@@ -85,54 +76,13 @@ pull_repo_with_retry() {
   return 1
 }
 
-repo_checkout_is_valid() {
-  local dir="$1"
-  local target="$2"
-  case "$dir" in
-    k)
-      [[ -f "$target/package.json" ]]
-      ;;
-    k-indexer)
-      [[ -f "$target/docker/PROD/Dockerfile.K-transaction-processor" && -f "$target/docker/PROD/Dockerfile.K-webserver" ]]
-      ;;
-    Kasia)
-      [[ -f "$target/package.json" ]]
-      ;;
-    kasia-indexer)
-      [[ -f "$target/Dockerfile" ]]
-      ;;
-    simply-kaspa-indexer)
-      [[ -f "$target/docker/Dockerfile" ]]
-      ;;
-    rusty-kaspa)
-      [[ -f "$target/docker/Dockerfile.kaspad" ]]
-      ;;
-    *)
-      return 0
-      ;;
-  esac
-}
-
 sync_external_repo() {
   local dir="$1"
   local url="$2"
   local target="$ROOT_DIR/$dir"
   local current_url
 
-  # Keep local working copies intact for repos we maintain directly in this store.
-  # If missing entirely, they can still be cloned once as a bootstrap.
-  if is_local_only_repo "$dir" && [[ -e "$target" ]]; then
-    echo "Using local repo $dir (sync skipped)"
-    return
-  fi
-
   if [[ -d "$target/.git" ]]; then
-    if ! repo_checkout_is_valid "$dir" "$target"; then
-      echo "External repo $dir checkout appears incomplete; recloning"
-      clone_repo_with_retry "$dir" "$url" "$target"
-      return
-    fi
-
     current_url="$(git -C "$target" remote get-url origin 2>/dev/null || true)"
     if [[ -n "$current_url" && "$current_url" != "$url" ]]; then
       echo "External repo remote mismatch for $dir; recloning ($current_url -> $url)"
@@ -165,11 +115,6 @@ sync_external_repo() {
 
 repos=(
   "rusty-kaspa|https://github.com/kaspanet/rusty-kaspa.git"
-  "k|https://github.com/thesheepcat/K.git"
-  "k-indexer|https://github.com/thesheepcat/K-indexer.git"
-  "simply-kaspa-indexer|https://github.com/supertypo/simply-kaspa-indexer.git"
-  "Kasia|https://github.com/K-Kluster/Kasia.git"
-  "kasia-indexer|https://github.com/K-Kluster/kasia-indexer.git"
 )
 
 for entry in "${repos[@]}"; do
