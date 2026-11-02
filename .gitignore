@@ -18,7 +18,8 @@ venv/
 node_modules/
 
 # Lokale App-Daten (Node- und Stratum-Datenverzeichnisse)
-data/
+/kaspa-node/data/
+/kaspa-stratum/data/
 
 # Rust-Build-Artefakte
 target/
