@@ -180,20 +180,6 @@ class StratumBridgeDashboard {
       this.setText('networkValue', this.toTitleCase(stats.network.toString().toLowerCase()));
     }
 
-    const internalCpu = stats?.internalCpu || null;
-    const cpuHashrateCard = document.getElementById('internalCpuHashrateCard');
-    const cpuBlocksCard = document.getElementById('internalCpuBlocksCard');
-
-    if (internalCpu) {
-      this.setText('internalCpuHashrateValue', this.formatHashrateHs((Number(internalCpu.hashrateGhs) || 0) * 1e9));
-      this.setText('internalCpuBlocksValue', this.formatNumber(internalCpu.blocksAccepted));
-      if (cpuHashrateCard) cpuHashrateCard.classList.remove('hidden');
-      if (cpuBlocksCard) cpuBlocksCard.classList.remove('hidden');
-    } else {
-      if (cpuHashrateCard) cpuHashrateCard.classList.add('hidden');
-      if (cpuBlocksCard) cpuBlocksCard.classList.add('hidden');
-    }
-
     this.renderWorkers(stats?.workers || []);
     this.renderBlocks(stats?.blocks || []);
     this.renderSharesPie(stats?.workers || []);
