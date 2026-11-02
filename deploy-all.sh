@@ -156,6 +156,14 @@ KASPA_EXTERNAL_SYNC_STRICT=1 KASPA_EXTERNAL_SYNC_RETRIES=4 bash "$ROOT_DIR/scrip
 resolve_kaspa_tag
 echo "Using Rusty Kaspa tag: ${KASPA_TAG}"
 
+# Validate the local bridge patch before building or pushing any images.
+git -C "$ROOT_DIR/rusty-kaspa" apply --check "$ROOT_DIR/patches/node-status.patch"
+bridge_dockerfile_dir="$(mktemp -d)"
+trap 'rm -rf "$bridge_dockerfile_dir"' EXIT
+bash "$ROOT_DIR/scripts/generate-bridge-dockerfile.sh" \
+  "$ROOT_DIR/rusty-kaspa/docker/Dockerfile.stratum-bridge" \
+  "$bridge_dockerfile_dir/Dockerfile"
+
 # Rusty Kaspa Node
 print_module_header "rusty-kaspa"
 build_push "dennitzo/rusty-kaspa" "$ROOT_DIR/rusty-kaspa/docker/Dockerfile.kaspad" "$ROOT_DIR/rusty-kaspa" "$KASPA_TAG"
@@ -170,9 +178,10 @@ docker buildx build \
   --builder "$BUILDX_BUILDER_NAME" \
   --platform "$DOCKER_PLATFORMS" \
   --no-cache \
+  --build-context "kaspa-dashboard-patch=$ROOT_DIR/patches" \
   "${push_args[@]}" \
   -t "dennitzo/kaspa-stratum-bridge:${KASPA_TAG}" \
-  -f "$ROOT_DIR/rusty-kaspa/docker/Dockerfile.stratum-bridge" \
+  -f "$bridge_dockerfile_dir/Dockerfile" \
   "$ROOT_DIR/rusty-kaspa"
 
 # Node UI/API + Stratum Dashboard

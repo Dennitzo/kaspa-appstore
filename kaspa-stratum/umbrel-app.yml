@@ -3,7 +3,7 @@ id: kaspa-stratum
 category: crypto
 name: Kaspa Stratum
 icon: https://raw.githubusercontent.com/Dennitzo/kaspa-appstore/main/kaspa_icon.svg
-version: "v0.8.3"
+version: "v0.8.4"
 tagline: Connect miners to your Kaspa node with RK-Stratum
 
 description: >-

@@ -71,17 +71,16 @@ class StratumBridgeDashboard {
         if (stats) {
           this.renderStats(stats);
         }
-        const connected = status?.kaspad_connected === true;
-        this.updateStatus(true, connected);
+        this.updateStatus(true, status.kaspad_connected);
         this.setLastUpdated();
         this.scheduleNext(this.updateInterval);
       } else {
-        this.updateStatus(false, false);
+        this.updateStatus(false, null);
         this.setLastUpdated();
         this.scheduleNext(this.updateInterval);
       }
     } catch {
-      this.updateStatus(false, false);
+      this.updateStatus(false, null);
       this.setLastUpdated();
       this.scheduleNext(this.updateInterval);
     }
@@ -104,9 +103,11 @@ class StratumBridgeDashboard {
       badge.style.background = bridgeOk ? 'rgba(16, 185, 129, 0.15)' : 'rgba(248, 113, 113, 0.15)';
     }
     if (kaspadBadge) {
-      kaspadBadge.textContent = kaspadOk ? 'KASPAD ONLINE' : 'KASPAD OFFLINE';
-      kaspadBadge.style.borderColor = kaspadOk ? 'rgba(16, 185, 129, 0.6)' : 'rgba(248, 113, 113, 0.6)';
-      kaspadBadge.style.background = kaspadOk ? 'rgba(16, 185, 129, 0.15)' : 'rgba(248, 113, 113, 0.15)';
+      const online = kaspadOk === true;
+      const offline = kaspadOk === false;
+      kaspadBadge.textContent = online ? 'KASPAD ONLINE' : offline ? 'KASPAD OFFLINE' : 'KASPAD UNKNOWN';
+      kaspadBadge.style.borderColor = online ? 'rgba(16, 185, 129, 0.6)' : offline ? 'rgba(248, 113, 113, 0.6)' : 'rgba(161, 161, 170, 0.6)';
+      kaspadBadge.style.background = online ? 'rgba(16, 185, 129, 0.15)' : offline ? 'rgba(248, 113, 113, 0.15)' : 'rgba(161, 161, 170, 0.15)';
     }
   }
 
