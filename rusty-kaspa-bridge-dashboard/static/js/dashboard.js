@@ -171,7 +171,7 @@ class StratumBridgeDashboard {
 
   renderStats(stats) {
     this.lastStats = stats || null;
-    this.setText('uptimeValue', this.formatUptimeSeconds(stats?.uptimeSeconds));
+    this.setText('uptimeValue', this.formatUptimeSeconds(stats?.bridgeUptime));
     this.setText('totalBlocksValue', this.formatNumber(stats?.totalBlocks));
     this.setText('totalSharesValue', this.formatNumber(stats?.totalShares));
     this.setText('activeWorkersValue', this.formatNumber(stats?.activeWorkers));
@@ -571,8 +571,9 @@ class StratumBridgeDashboard {
   }
 
   formatUptimeSeconds(value) {
-    const totalSeconds = Number(value ?? 0);
-    if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) return '--';
+    if (value == null || value === '') return '--';
+    const totalSeconds = Number(value);
+    if (!Number.isFinite(totalSeconds) || totalSeconds < 0) return '--';
     const days = Math.floor(totalSeconds / 86400);
     const hours = Math.floor((totalSeconds % 86400) / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);

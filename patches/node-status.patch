@@ -1,21 +1,23 @@
 --- a/bridge/src/prom.rs
 +++ b/bridge/src/prom.rs
-@@ -429,7 +429,13 @@
+@@ -429,7 +429,15 @@
      }
  
      if request.starts_with("GET /api/status") {
 -        let kaspad_version = crate::kaspaapi::NODE_STATUS.lock().server_version.clone().unwrap_or_else(|| "-".to_string());
-+        let node_status = crate::kaspaapi::NODE_STATUS.lock();
-+        let kaspad_version = node_status.server_version.clone().unwrap_or_else(|| "-".to_string());
-+        let kaspad_connected = node_status
-+            .last_updated
-+            .filter(|updated| updated.elapsed() <= std::time::Duration::from_secs(30))
-+            .map(|_| node_status.is_connected);
-+        drop(node_status);
++        let (kaspad_version, kaspad_connected) = {
++            let node_status = crate::kaspaapi::NODE_STATUS.lock();
++            let version = node_status.server_version.clone().unwrap_or_else(|| "-".to_string());
++            let connected = node_status
++                .last_updated
++                .filter(|updated| updated.elapsed() <= std::time::Duration::from_secs(30))
++                .map(|_| node_status.is_connected);
++            (version, connected)
++        };
          let status_cfg = get_web_status_config();
          let web_bind = match mode {
              HttpMode::Aggregated { web_bind } => web_bind.clone(),
-@@ -437,7 +443,7 @@
+@@ -437,7 +445,7 @@
          };
  
          let status =
@@ -24,7 +26,7 @@
          let json = serde_json::to_string(&status).unwrap_or_else(|_| "{}".to_string());
          let response = format!(
              "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nConnection: close\r\nAccess-Control-Allow-Origin: *\r\nContent-Length: {}\r\n\r\n{}",
-@@ -795,6 +801,7 @@
+@@ -795,6 +803,7 @@
  struct WebStatusResponse {
      kaspad_address: String,
      kaspad_version: String,
