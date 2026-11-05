@@ -83,7 +83,8 @@ def _parse_log_line(line: str) -> dict:
 def do_not_cache(response):
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     response.headers["Pragma"] = "no-cache"
-    response.headers["Expires"] = "0"
+    # The Node Nginx proxy owns Expires; emitting it here too duplicates the
+    # header on installations still using the older proxy configuration.
     response.headers["Access-Control-Allow-Origin"] = "*"
     response.headers["Access-Control-Allow-Headers"] = (
         "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range"

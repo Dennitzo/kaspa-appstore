@@ -34,3 +34,46 @@
      instances: usize,
      web_bind: String,
  }
+@@ -1294,6 +1303,6 @@
+                     if share_type == "stale" {
+                         worker.stale = worker.stale.saturating_add(count);
+-                    } else if share_type == "invalid" {
++                    } else if share_type == "invalid" || share_type == "weak" {
+                         worker.invalid = worker.invalid.saturating_add(count);
+                     }
+                 }
+@@ -1705,4 +1714,34 @@
+     #[tokio::test]
++    async fn stats_count_weak_and_invalid_shares() {
++        init_metrics();
++        let worker = WorkerContext {
++            instance_id: "weak-regression".to_string(),
++            worker_name: "weak-regression-worker".to_string(),
++            miner: "test".to_string(),
++            wallet: "weak-regression-wallet".to_string(),
++            ip: "127.0.0.1".to_string(),
++        };
++        let mode = HttpMode::Instance { instance_id: worker.instance_id.clone(), web_bind: "127.0.0.1:0".to_string() };
++
++        record_share_found(&worker, 1.0);
++        record_weak_share(&worker);
++        let response = send_request(mode.clone(), "GET /api/stats HTTP/1.1\r\n\r\n").await;
++        let (_, body) = response.split_once("\r\n\r\n").unwrap();
++        let stats: StatsResponse = serde_json::from_str(body).unwrap();
++        let actual = stats.workers.iter().find(|item| item.worker == worker.worker_name).unwrap();
++        assert_eq!((actual.shares, actual.stale, actual.invalid), (1, 0, 1));
++
++        record_invalid_share(&worker);
++        record_stale_share(&worker);
++        record_dupe_share(&worker);
++        let response = send_request(mode, "GET /api/stats HTTP/1.1\r\n\r\n").await;
++        let (_, body) = response.split_once("\r\n\r\n").unwrap();
++        let stats: StatsResponse = serde_json::from_str(body).unwrap();
++        let actual = stats.workers.iter().find(|item| item.worker == worker.worker_name).unwrap();
++        assert_eq!((actual.shares, actual.stale, actual.invalid), (1, 1, 2));
++    }
++
++    #[tokio::test]
+     async fn test_http_routing_and_config_write() {
+         let config_path = temp_config_path();
+         set_web_config_path(config_path.clone());
