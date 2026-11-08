@@ -12,6 +12,9 @@ KASPA_TAG="${KASPA_TAG:-}"
 DOCKER_PLATFORMS="${DOCKER_PLATFORMS:-linux/amd64}"
 BUILDX_BUILDER_NAME="${BUILDX_BUILDER_NAME:-kaspa-amd64}"
 BUILDX_BUILDER_DRIVER="${BUILDX_BUILDER_DRIVER:-docker}"
+# MODULES: Kommagetrennte Liste der zu bauenden Module (Standard: leer = alle).
+# Beispiel: MODULES="kaspa-stratum-dashboard" ./deploy-all.sh
+MODULES="${MODULES:-}"
 
 require_docker() {
   if docker info >/dev/null 2>&1; then
@@ -124,6 +127,24 @@ print_module_header() {
   echo "=================================================="
 }
 
+# should_build prueft, ob ein Modul gebaut wird (MODULES leer -> alle).
+should_build() {
+  local module="$1"
+  if [[ -z "$MODULES" ]]; then
+    return 0
+  fi
+  local entry
+  local IFS=','
+  for entry in $MODULES; do
+    entry="${entry//[[:space:]]/}"
+    [[ -n "$entry" ]] || continue
+    if [[ "$entry" == "$module" ]]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
 require_docker
 require_buildx
 ensure_buildx_builder
@@ -152,42 +173,54 @@ if [[ "$PUSH_IMAGES" != "1" ]]; then
 fi
 
 # Keep rusty-kaspa up to date (git pull --ff-only / clone).
-KASPA_EXTERNAL_SYNC_STRICT=1 KASPA_EXTERNAL_SYNC_RETRIES=4 bash "$ROOT_DIR/scripts/sync-external-repos.sh" "$ROOT_DIR"
+# Sync nur, wenn Module aus dem rusty-kaspa Repo gebaut werden.
+if should_build "rusty-kaspa" || should_build "kaspa-stratum-bridge"; then
+  KASPA_EXTERNAL_SYNC_STRICT=1 KASPA_EXTERNAL_SYNC_RETRIES=4 bash "$ROOT_DIR/scripts/sync-external-repos.sh" "$ROOT_DIR"
+fi
 resolve_kaspa_tag
 echo "Using Rusty Kaspa tag: ${KASPA_TAG}"
 
-# Validate the local bridge patch before building or pushing any images.
-git -C "$ROOT_DIR/rusty-kaspa" apply --check "$ROOT_DIR/patches/node-status.patch"
-bridge_dockerfile_dir="$(mktemp -d)"
-trap 'rm -rf "$bridge_dockerfile_dir"' EXIT
-bash "$ROOT_DIR/scripts/generate-bridge-dockerfile.sh" \
-  "$ROOT_DIR/rusty-kaspa/docker/Dockerfile.stratum-bridge" \
-  "$bridge_dockerfile_dir/Dockerfile"
-
 # Rusty Kaspa Node
-print_module_header "rusty-kaspa"
-build_push "dennitzo/rusty-kaspa" "$ROOT_DIR/rusty-kaspa/docker/Dockerfile.kaspad" "$ROOT_DIR/rusty-kaspa" "$KASPA_TAG"
+if should_build "rusty-kaspa"; then
+  print_module_header "rusty-kaspa"
+  build_push "dennitzo/rusty-kaspa" "$ROOT_DIR/rusty-kaspa/docker/Dockerfile.kaspad" "$ROOT_DIR/rusty-kaspa" "$KASPA_TAG"
+fi
 
 # Kaspa Stratum Bridge (source from rusty-kaspa repo)
-print_module_header "kaspa-stratum-bridge"
-push_args=()
-if [[ "$PUSH_IMAGES" == "1" ]]; then
-  push_args+=(--push)
+if should_build "kaspa-stratum-bridge"; then
+  # Validate the local bridge patch before building or pushing the bridge image.
+  git -C "$ROOT_DIR/rusty-kaspa" apply --check "$ROOT_DIR/patches/node-status.patch"
+  bridge_dockerfile_dir="$(mktemp -d)"
+  trap 'rm -rf "$bridge_dockerfile_dir"' EXIT
+  bash "$ROOT_DIR/scripts/generate-bridge-dockerfile.sh" \
+    "$ROOT_DIR/rusty-kaspa/docker/Dockerfile.stratum-bridge" \
+    "$bridge_dockerfile_dir/Dockerfile"
+  print_module_header "kaspa-stratum-bridge"
+  push_args=()
+  if [[ "$PUSH_IMAGES" == "1" ]]; then
+    push_args+=(--push)
+  fi
+  docker buildx build \
+    --builder "$BUILDX_BUILDER_NAME" \
+    --platform "$DOCKER_PLATFORMS" \
+    --no-cache \
+    --build-context "kaspa-dashboard-patch=$ROOT_DIR/patches" \
+    "${push_args[@]}" \
+    -t "dennitzo/kaspa-stratum-bridge:${KASPA_TAG}" \
+    -f "$bridge_dockerfile_dir/Dockerfile" \
+    "$ROOT_DIR/rusty-kaspa"
 fi
-docker buildx build \
-  --builder "$BUILDX_BUILDER_NAME" \
-  --platform "$DOCKER_PLATFORMS" \
-  --no-cache \
-  --build-context "kaspa-dashboard-patch=$ROOT_DIR/patches" \
-  "${push_args[@]}" \
-  -t "dennitzo/kaspa-stratum-bridge:${KASPA_TAG}" \
-  -f "$bridge_dockerfile_dir/Dockerfile" \
-  "$ROOT_DIR/rusty-kaspa"
 
 # Node UI/API + Stratum Dashboard
-print_module_header "kaspa-node-ui"
-build_push dennitzo/kaspa-node-ui "$ROOT_DIR/kaspa-node/frontend/Dockerfile" "$ROOT_DIR/kaspa-node/frontend" latest
-print_module_header "kaspa-node-api"
-build_push dennitzo/kaspa-node-api "$ROOT_DIR/kaspa-node/api/Dockerfile" "$ROOT_DIR/kaspa-node/api" latest
-print_module_header "kaspa-stratum-dashboard"
-build_push dennitzo/kaspa-stratum-dashboard "$ROOT_DIR/rusty-kaspa-bridge-dashboard/Dockerfile" "$ROOT_DIR/rusty-kaspa-bridge-dashboard" latest
+if should_build "kaspa-node-ui"; then
+  print_module_header "kaspa-node-ui"
+  build_push dennitzo/kaspa-node-ui "$ROOT_DIR/kaspa-node/frontend/Dockerfile" "$ROOT_DIR/kaspa-node/frontend" latest
+fi
+if should_build "kaspa-node-api"; then
+  print_module_header "kaspa-node-api"
+  build_push dennitzo/kaspa-node-api "$ROOT_DIR/kaspa-node/api/Dockerfile" "$ROOT_DIR/kaspa-node/api" latest
+fi
+if should_build "kaspa-stratum-dashboard"; then
+  print_module_header "kaspa-stratum-dashboard"
+  build_push dennitzo/kaspa-stratum-dashboard "$ROOT_DIR/rusty-kaspa-bridge-dashboard/Dockerfile" "$ROOT_DIR/rusty-kaspa-bridge-dashboard" latest
+fi

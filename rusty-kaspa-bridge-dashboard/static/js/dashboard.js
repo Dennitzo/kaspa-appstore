@@ -642,7 +642,7 @@ class StratumBridgeDashboard {
       v /= 1000;
       i += 1;
     }
-    return `${Math.round(v)} ${units[i]}`;
+    return `${v.toFixed(2)} ${units[i]}`;
   }
 
   formatDifficulty(value) {
