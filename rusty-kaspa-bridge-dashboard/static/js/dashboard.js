@@ -176,7 +176,7 @@ class StratumBridgeDashboard {
     this.setText('totalSharesValue', this.formatNumber(stats?.totalShares));
     this.setText('activeWorkersValue', this.formatNumber(stats?.activeWorkers));
     const networkHashrate = Number(stats?.networkHashrate || 0);
-    this.setText('networkHashrateValue', networkHashrate > 0 ? this.formatHashrateHs(networkHashrate) : '--');
+    this.setText('networkHashrateValue', networkHashrate > 0 ? this.formatHashrateHs(networkHashrate, 0) : '--');
     if (stats?.network) {
       this.setText('networkValue', this.toTitleCase(stats.network.toString().toLowerCase()));
     }
@@ -632,7 +632,7 @@ class StratumBridgeDashboard {
     return num.toLocaleString();
   }
 
-  formatHashrateHs(hs) {
+  formatHashrateHs(hs, decimals = 2) {
     const num = Number(hs || 0);
     if (!Number.isFinite(num) || num <= 0) return '--';
     const units = ['H/s', 'kH/s', 'MH/s', 'GH/s', 'TH/s', 'PH/s', 'EH/s'];
@@ -642,7 +642,7 @@ class StratumBridgeDashboard {
       v /= 1000;
       i += 1;
     }
-    return `${v.toFixed(2)} ${units[i]}`;
+    return `${v.toFixed(decimals)} ${units[i]}`;
   }
 
   formatDifficulty(value) {
